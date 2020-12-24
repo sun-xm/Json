@@ -1,0 +1,15 @@
+{
+    "age": 21,
+    "name": "Geoge",
+    "b-day": "1999-04-23T18:25:43.511Z",
+    "married": false,
+    "weight": 65.5,
+    "address": {
+        "country": "country",
+        "street": "\u8857\u9053"
+    },
+    "address.city": "城市",
+    "skills":["c", "c++", "c#", null],
+    "id": 12345,
+    "department": "department"
+}
