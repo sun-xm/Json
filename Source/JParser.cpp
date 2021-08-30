@@ -147,7 +147,10 @@ void JParser::GetVal(const string& json, string::size_type& off, const string& n
 
 void JParser::GetArr(const string& json, string::size_type& off, const string& name, JArr* arr)
 {
-    arr->Define();
+    if (arr)
+    {
+        arr->Define();
+    }
 
     off = FindFirstNotSpace(json, ++off);
     if (']' == json[off])
