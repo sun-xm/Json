@@ -1,71 +1,113 @@
 #include "Person.h"
 #include "JPrint.h"
 #include <algorithm>
+#include <sstream>
 #include <fstream>
 #include <iostream>
 
 using namespace std;
 
-string Load(const string& file)
-{
-#ifdef WIN32
-    ifstream in("..\\..\\Runner\\" + file);
-#else
-    ifstream in("../Runner/" + file);
-#endif
-    return string(istreambuf_iterator<char>(in), istreambuf_iterator<char>());
-}
-
 int main(int argc, char* argv[])
 {
+    string e;
+
+    JStr jstr;
+    if (jstr.Deserialize(istringstream("\"1\t2\\\\3\\\"4\""), e))
+    {
+        cout << jstr << endl;
+    }
+    else
+    {
+        cout << e << endl;
+    }
+
     JInt jint;
-    jint.Deserialize("123");
-    cout << jint << endl;
-    cout << jint.Serialize() << endl << endl;
+    if (jint.Deserialize(istringstream("0x1aF"), e))
+    {
+        cout << jint << endl;
+    }
+    else
+    {
+        cout << e << endl;
+    }
 
-    JFloat jflt;
-    jflt.Deserialize(".123");
-    cout << jflt << endl;
-    cout << jflt.Serialize() << endl << endl;
+    JUint juint;
+    if (juint.Deserialize(istringstream("123"), e))
+    {
+        cout << juint << endl;
+    }
+    else
+    {
+        cout << e << endl;
+    }
 
-    JString jstr;
-    jstr.Deserialize("\"123\"");
-    cout << jstr << endl;
-    cout << jstr.Serialize() << endl << endl;
+    JFlt jflt;
+    if (jflt.Deserialize(istringstream("123.456"), e))
+    {
+        cout << jflt << endl;
+    }
+    else
+    {
+        cout << e << endl;
+    }
 
-    JParserError e;
+    JDate jdate;
+    if (jdate.Deserialize(istringstream("\"1999-04-23T18:25:43.511Z\""), e))
+    {
+        cout << jdate << endl;
+    }
+    else
+    {
+        cout << e << endl;
+    }
 
-    cout << "Person:" << endl;
+    JArr<JArr<JInt>> jarrarr;
+    if (jarrarr.Deserialize(istringstream("[[1, 2], [2, 3], [3, 4]]"), e))
+    {
+        jarrarr.ForEachItem([](const JArr<JInt>& jarr)
+        {
+            jarr.ForEachItem([](const JInt& jint)
+            {
+                cout << jint << ',';
+            });
+            cout << endl;
+        });
+        cout << endl;
+    }
+    else
+    {
+        cout << e << endl;
+    }
+
+    ifstream json("person.json");
+    if (!json.is_open())
+    {
+        cout << "Failed to open person.json" << endl;
+        return 0;
+    }
+
     Person person;
-    if (person.Deserialize(Load("person.json"), e))
+    if (person.Deserialize(json, e))
     {
         cout << person << endl;
         cout << person.Serialize() << endl;
-
-        cout << person.age   << endl;
-        cout << person.name  << endl;
-        cout << person.birth << endl << endl;
-
     }
     else
     {
-        cerr << e << endl;
+        cout << JError(json, e) << endl;
     }
 
-    cout << "Employee:" << endl;
     Employee employee;
-    if (employee.Deserialize(Load("person.json"), e))
+    json.clear();
+    json.seekg(0);
+    if (employee.Deserialize(json, e))
     {
+        cout << employee << endl;
         cout << employee.Serialize() << endl;
-
-        if (employee.id.HasValue())
-        {
-            cout << employee.id << endl;
-        }
     }
     else
     {
-        cerr << e << endl;
+        cout << JError(json, e) << endl;
     }
 
     return 0;

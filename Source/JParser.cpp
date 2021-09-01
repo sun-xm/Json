@@ -1,5 +1,6 @@
 #include "JParser.h"
 #include "JObject.h"
+#include <cassert>
 #include <codecvt>
 #include <ctime>
 #include <iomanip>
@@ -7,317 +8,434 @@
 #include <locale>
 #include <sstream>
 
-#define GETCAPTURE(capture, index, type)   (*(type*)(((void**)capture)[index]))
-#define EXPECTMORE  "Expecting more charactors"
-#define UNEXPECTED  "Unexpected charactor"
-
 using namespace std;
 
 const string Numbers("+-.0123456789");
 
 wstring_convert<codecvt_utf8<wchar_t>> utf8;
 
-string JParser::Serialize(const JField& field)
+inline exception TypeMismatch(const string& name, JType expected, JType actual)
 {
-    ostringstream oss;
-    GetJson("", field, oss);
-    return oss.str();
+    return exception(("Type mismatch: " + name + ". Expecting: " + to_string(expected) + ". Actual: " + to_string(actual)).c_str());
 }
 
-void JParser::Deserialize(const string& json, JField& field)
+inline exception ExpectMore()
 {
-    string::size_type off = 0;
-    GetVal(json, off, "", &field);
+    return exception("Expecting more charactors");
+}
 
-    if (string::npos != (off = json.find_first_not_of(" \r\n", off)))
+inline exception Unexpected()
+{
+    return exception("Unexpected charactor");
+}
+
+inline char GetChar(istream& json)
+{
+    char c;
+    json.get(c);
+
+    if (json.eof())
     {
-        throw JParserError(json, off, "Extra following charactors");
+        throw ExpectMore();
+    }
+
+    return c;
+}
+
+inline char FirstNotSpace(istream& json)
+{
+    char c;
+
+    do
+    {
+        c = GetChar(json);
+
+    } while(' ' == c || '\r' == c || '\n' == c || '\t' == c);
+
+    return c;
+}
+
+void JParser::Serialize(ostream& json, const JField& field)
+{
+    GetJson("", field, json);
+}
+
+void JParser::Deserialize(istream& json, JField& field)
+{
+    GetVal(json, "", &field);
+
+    char c;
+    json >> c;
+
+    while (!json.eof())
+    {
+        if ('\t' != c && '\r' != c && '\n' != c && ' ' != c)
+        {
+            json.unget();
+            throw Unexpected();
+        }
+
+        json >> c;
     }
 }
 
-void JParser::GetVal(const string& json, string::size_type& off, const string& name, JField* field)
+void JParser::GetVal(istream& json, const string& name, JField* field)
 {
-    off = FindFirstNotSpace(json, off);
-    switch (json[off])
+    auto c = FirstNotSpace(json);
+    switch (c)
     {
-    case '{':
-        if (field && JType::OBJ != field->Type())
+        case '{':
         {
-            throw TypeMismatch(json, off, name, field->Type(), JType::OBJ);
-        }
-        GetObj(json, off, (JObject*)field);
-        break;
-
-    case '[':
-        if (field && JType::ARR != field->Type())
-        {
-            throw TypeMismatch(json, off, name, field->Type(), JType::ARR);
-        }
-        GetArr(json, off, name, (JArr*)field);
-        break;
-
-    case '\"':
-        if (field)
-        {
-            if (JType::STR == field->Type())
+            if (field && JType::OBJ != field->Type())
             {
-                *(JString*)field = GetStr(json, off).c_str();
+                json.unget();
+                throw TypeMismatch(name, field->Type(), JType::OBJ);
             }
-            else if (JType::DATE == field->Type())
-            {
-                *(JDate*)field = GetDate(json, off);
-            }
-            else
-            {
-                throw TypeMismatch(json, off, name, field->Type(), JType::STR);
-            }
+            GetObj(json, (JObject*)field);
+            break;
         }
-        else
-        {
-            GetStr(json, off);
-        }
-        break;
 
-    default:
-        if ('t' == json[off] || 'f' == json[off])
+        case '[':
+        {
+            if (field && JType::ARR != field->Type())
+            {
+                json.unget();
+                throw TypeMismatch(name, field->Type(), JType::ARR);
+            }
+            GetArr(json, name, (JArray*)field);
+            break;
+        }
+
+        case '\"':
         {
             if (field)
             {
-                if (JType::BOOL != field->Type())
+                if (JType::STR == field->Type())
                 {
-                    throw TypeMismatch(json, off, name, field->Type(), JType::BOOL);
+                    *(JStr*)field = GetStr(json);
                 }
-                *(JBool*)field = GetBool(json, off);
+                else if (JType::DATE == field->Type())
+                {
+                    *(JDate*)field = GetDate(json);
+                }
+                else
+                {
+                    json.unget();
+                    throw TypeMismatch(name, field->Type(), JType::STR);
+                }
             }
             else
             {
-                GetBool(json, off);
+                GetStr(json);
             }
+            break;
         }
-        else if ('n' == json[off])
+
+        default:
         {
-            if ("null" == json.substr(off, 4))
+            json.unget();
+
+            switch (c)
             {
-                if (field)
+                case 't':
+                case 'f':
                 {
-                    *field = nullptr;
+                    if (field)
+                    {
+                        if (JType::BOOL != field->Type())
+                        {
+                            throw TypeMismatch(name, field->Type(), JType::BOOL);
+                        }
+                        *(JBool*)field = GetBool(json);
+                    }
+                    else
+                    {
+                        GetBool(json);
+                    }
+                    break;
                 }
 
-                off += 4;
-            }
-            else
-            {
-                throw JParserError(json, off, UNEXPECTED);
-            }
-        }
-        else if (string::npos != Numbers.find_first_of(json[off]))
-        {
-            if (field)
-            {
-                switch (field->Type())
+                case 'n':
                 {
-                case JType::INT:
-                    *(JInt*)field = GetInt(json, off);
+                    if ('n' == GetChar(json) &&
+                        'u' == GetChar(json) &&
+                        'l' == GetChar(json) &&
+                        'l' == GetChar(json))
+                    {
+                        if (field)
+                        {
+                            *field = nullptr;
+                        }
+                    }
+                    else
+                    {
+                        json.unget();
+                        throw Unexpected();
+                    }
                     break;
-
-                case JType::UINT:
-                    *(JUint*)field = GetUint(json, off);
-                    break;
-
-                case JType::FLT:
-                    *(JFloat*)field = GetFlt(json, off);
-                    break;
+                }
 
                 default:
-                    throw TypeMismatch(json, off, name, field->Type(), JType::INT);
+                {
+                    if (string::npos != Numbers.find(c))
+                    {
+                        if (field)
+                        {
+                            switch (field->Type())
+                            {
+                                case JType::INT:
+                                {
+                                    *(JInt*)field = GetInt(json);
+                                    break;
+                                }
+
+                                case JType::UINT:
+                                {
+                                    *(JUint*)field = GetUint(json);
+                                    break;
+                                }
+
+                                case JType::FLT:
+                                {
+                                    *(JFlt*)field = GetFlt(json);
+                                    break;
+                                }
+
+                                default:
+                                {
+                                    throw TypeMismatch(name, field->Type(), JType::FLT);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            GetFlt(json);
+                        }
+                    }
+                    else
+                    {
+                        throw Unexpected();
+                    }
+                    break;
                 }
             }
-            else
-            {
-                GetFlt(json, off);
-            }
+
+            break;
         }
-        else
-        {
-            throw JParserError(json, off, UNEXPECTED);
-        }
-        break;
     }
 }
 
-void JParser::GetArr(const string& json, string::size_type& off, const string& name, JArr* arr)
+void JParser::GetArr(istream& json, const string& name, JArray* arr)
 {
     if (arr)
     {
         arr->Define();
     }
 
-    off = FindFirstNotSpace(json, ++off);
-    if (']' == json[off])
+    auto c = FirstNotSpace(json);
+    if (']' == c)
     {
-        off++;
         return;
     }
 
-    do
-    {
-        off = FindFirstNotSpace(json, off);
-
-        if (arr)
-        {
-            GetVal(json, off, name, arr->GetNew());
-        }
-        else
-        {
-            GetVal(json, off, name, nullptr);
-        }
-    } while([&]
-    {
-        off = FindFirstNotSpace(json, off);
-
-        switch (json[off++])
-        {
-            case ',': return true;
-            case ']': return false;
-            default: throw JParserError(json, off - 1, UNEXPECTED);
-        }
-    }());
-}
-
-void JParser::GetObj(const string& json, string::size_type& off, JObject* obj)
-{
-    off = FindFirstNotSpace(json, ++off);
-    if ('}' == json[off])
-    {
-        off++;
-        return;
-    }
+    json.unget();
 
     do
     {
-        off = FindFirstNotSpace(json, off);
-
-        if ('\"' != json[off])
-        {
-            throw JParserError(json, off, UNEXPECTED);
-        }
-
-        string name = GetName(json, off);
-        auto field = obj ? obj->GetField(name.c_str()) : nullptr;
-
-        while ('.' == json[off])
-        {
-            if ('\"' == json[off - 1])
-            {
-                throw JParserError(json, off - 1, UNEXPECTED);
-            }
-
-            if (field && JType::OBJ != field->Type())
-            {
-                throw TypeMismatch(json, off, name, field->Type(), JType::OBJ);
-            }
-
-            name = GetName(json, off);
-            field = field ? ((JObject*)field)->GetField(name.c_str()) : nullptr;
-        }
-
-        off = FindFirstNotSpace(json, off);
-        if (':' != json[off])
-        {
-            throw JParserError(json, off, UNEXPECTED);
-        }
-
-        GetVal(json, ++off, name, field);
+        GetVal(json, name, arr ? arr->GetNew() : nullptr);
 
     } while ([&]
     {
-        off = FindFirstNotSpace(json, off);
-
-        switch (json[off++])
+        switch (FirstNotSpace(json))
         {
             case ',': return true;
-            case '}': return false;
-            default: throw JParserError(json, off - 1, UNEXPECTED);
+
+            case ']': return false;
+
+            default:
+            {
+                json.unget();
+                throw Unexpected();
+            }
         }
     }());
 }
 
-double JParser::GetFlt(const string& json, string::size_type& off)
+void JParser::GetObj(istream& json, JObject* obj)
 {
-    char* end;
-    auto value = strtod(json.c_str() + off, &end);
-
-    if (end == json.c_str() + off)
+    auto c = FirstNotSpace(json);
+    if ('}' == c)
     {
-        throw JParserError(json, off, "Failed to parse float");
+        return;
     }
 
-    off = end - json.c_str();
+    do
+    {
+        if ('\"' != c)
+        {
+            json.unget();
+            throw Unexpected();
+        }
 
-    return value;
+        auto n = GetName(json);
+        auto f = obj ? obj->GetField(n) : nullptr;
+
+        c = GetChar(json);
+        while ('.' == c)
+        {
+            if (f && JType::OBJ != f->Type())
+            {
+                json.unget();
+                throw TypeMismatch(n, f->Type(), JType::OBJ);
+            }
+
+            n = GetName(json);
+            f = f ? ((JObject*)f)->GetField(n) : nullptr;
+
+            c = GetChar(json);
+        }
+        assert('\"' == c);
+
+        c = FirstNotSpace(json);
+
+        if (':' != c)
+        {
+            json.unget();
+            throw Unexpected();
+        }
+
+        GetVal(json, n, f);
+
+    } while ([&]
+    {
+        switch (FirstNotSpace(json))
+        {
+            case ',':
+            {
+                c = FirstNotSpace(json);
+                return true;
+            }
+
+            case '}':
+            {
+                return false;
+            }
+
+            default:
+            {
+                json.unget();
+                throw Unexpected();
+            }
+        }
+    }());
 }
 
-string JParser::GetStr(const string& json, string::size_type& off)
+double JParser::GetFlt(istream& json)
 {
-    if (json.length() == off)
-    {
-        throw JParserError(json, off, EXPECTMORE);
-    }
+    double v;
+    json >> v;
+    return v;
+}
 
-    off = FindFirstNotSpace(json, off);
-    if ('\"' != json[off])
-    {
-        throw JParserError(json, off, UNEXPECTED);
-    }
-
+string JParser::GetStr(istream& json)
+{
     ostringstream oss;
-    while ([&]{ if (json.length() == ++off) throw JParserError(json, off, EXPECTMORE); return '\"' != json[off]; }())
+
+    char c = 0;
+    char p;
+    do
     {
-        switch (json[off])
+        p = c;
+        c = GetChar(json);
+
+    } while ([&]
+    {
+        switch (c)
         {
             case '\\':
             {
-                if (json.length() == ++off)
+                if ('\\' == p)
                 {
-                    throw JParserError(json, off, EXPECTMORE);
+                    oss << c;
+                    c = 0;
+                }
+                break;
+            }
+
+            case '\"':
+            {
+                if ('\\' != p)
+                {
+                    return false;
                 }
 
-                switch (json[off])
-                {
-                    case '\\':
-                    case '\"':
-                        oss << json[off];
-                        break;
+                oss << c;
+                break;
+            }
 
-                    case 'u':
+            case 'u':
+            {
+                if ('\\' == p)
+                {
+                    char buf[5];
+                    for (int i = 0; i < 4; i++)
                     {
-                        if (json.length() <= off + 4)
+                        c = tolower(GetChar(json));
+                        if (('0' <= c && '9' >= c) ||
+                            ('a' <= c && 'f' >= c))
                         {
-                            throw JParserError(json, off + 4, EXPECTMORE);
+                            buf[i] = c;
+                            continue;
                         }
 
-                        oss << utf8.to_bytes((wchar_t)stoi(json.substr(off + 1, off + 5), nullptr, 16));
-                        off += 4;
-                        break;
+                        json.unget();
+                        throw Unexpected();
                     }
-
-                    default:
-                        throw JParserError(json, off, UNEXPECTED);
+                    buf[4] = '\0';
+                    oss << utf8.to_bytes((wchar_t)strtol(buf, nullptr, 16));
+                }
+                else
+                {
+                    oss << c;
                 }
                 break;
             }
 
             default:
             {
-                oss << json[off];
+                if ('\\' == p)
+                {
+                    json.unget();
+                    throw Unexpected();
+                }
+                oss << c;
                 break;
             }
         }
-    }
 
-    off++;
+        return true;
+    }());
 
     return oss.str();
+}
+
+int64_t JParser::GetInt(istream& json)
+{
+    int64_t v;
+
+    auto c = GetChar(json);
+    if ('0' == c && 'x' == json.peek())
+    {
+        json.get();
+        json >> hex >> v;
+    }
+    else
+    {
+        json.unget();
+        json >> v;
+    }
+
+    return v;
 }
 
 int64_t JParser::GetInt(const string& json, string::size_type& off)
@@ -336,12 +454,31 @@ int64_t JParser::GetInt(const string& json, string::size_type& off)
 
     if (end == json.c_str() + off)
     {
-        throw JParserError(json, off, "Failed to parse int");
+        throw exception("Failed to parse int");
     }
 
     off = end - json.c_str();
 
     return value;
+}
+
+uint64_t JParser::GetUint(istream& json)
+{
+    uint64_t v;
+
+    auto c = GetChar(json);
+    if ('0' == c && 'x' == json.peek())
+    {
+        json.get();
+        json >> hex >> v;
+    }
+    else
+    {
+        json.unget();
+        json >> v;
+    }
+
+    return v;
 }
 
 uint64_t JParser::GetUint(const string& json, string::size_type& off)
@@ -360,7 +497,7 @@ uint64_t JParser::GetUint(const string& json, string::size_type& off)
 
     if (end == json.c_str() + off)
     {
-        throw JParserError(json, off, "Failed to parse uint");
+        throw exception("Failed to parse uint");
     }
 
     off = end - json.c_str();
@@ -368,46 +505,73 @@ uint64_t JParser::GetUint(const string& json, string::size_type& off)
     return value;
 }
 
-string JParser::GetName(const string& json, string::size_type& off)
+string JParser::GetName(istream& json)
 {
-    off = FindFirstNotSpace(json, off);
-    if ('\"' != json[off] && '.' != json[off])
-    {
-        throw JParserError(json, off, UNEXPECTED);
-    }
+    ostringstream oss;
 
-    auto beg = off + 1;
-
+    char c = 0;
+    char p;
     do
     {
-        if (++off == json.length())
+        p = c;
+        c = GetChar(json);
+
+    } while ([&]
+    {
+        switch (c)
         {
-            throw JParserError(json, off, EXPECTMORE);
+            case '\\':
+            {
+                if ('\\' == p)
+                {
+                    oss << c;
+                    c = 0;
+                }
+                break;
+            }
+
+            case '\"':
+            {
+                if ('\\' != p)
+                {
+                    json.unget();
+                    return false;
+                }
+
+                oss << c;
+                break;
+            }
+
+            default:
+            {
+                if ('\\' == p)
+                {
+                    json.unget();
+                    throw Unexpected();
+                }
+
+                if ('.' == c)
+                {
+                    json.unget();
+                    return false;
+                }
+
+                oss << c;
+                break;
+            }
         }
 
-        off = json.find_first_of(".\"", off);
+        return true;
+    }());
 
-        if (string::npos == off)
-        {
-            throw JParserError(json, beg - 1, "Not enclosed");
-        }
-    } while ('\\' == json[off - 1]);
-
-    if ('.' == json[off])
-    {
-        return json.substr(beg, off - beg);
-    }
-    else
-    {
-        return json.substr(beg, off++ - beg);
-    }
+    return oss.str();
 }
 
-time_t JParser::GetDate(const string& json, string::size_type& off)
+time_t JParser::GetDate(istream& json)
 {
-    auto beg = off;
+    auto beg = json.tellg();
+    auto date = GetStr(json);
 
-    auto date = GetStr(json, off);
     if (0 == date.find("\\/Date("))
     {
         string::size_type pos = 0;
@@ -433,31 +597,36 @@ time_t JParser::GetDate(const string& json, string::size_type& off)
         tm.tm_year = (int)GetUint(date, pos) - 1900;
         if ('-' != date[pos])
         {
-            throw JParserError(json, beg + pos, UNEXPECTED);
+            json.seekg(beg);
+            throw Unexpected();
         }
 
         tm.tm_mon = (int)GetUint(date, ++pos) - 1;
         if ('-' != date[pos])
         {
-            throw JParserError(json, beg + pos, UNEXPECTED);
+            json.seekg(beg);
+            throw Unexpected();
         }
 
         tm.tm_mday = (int)GetUint(date, ++pos);
         if ('T' != date[pos])
         {
-            throw JParserError(json, beg + pos, UNEXPECTED);
+            json.seekg(beg);
+            throw Unexpected();
         }
 
         tm.tm_hour = (int)GetUint(date, ++pos);
         if (':' != date[pos])
         {
-            throw JParserError(json, beg + pos, UNEXPECTED);
+            json.seekg(beg);
+            throw Unexpected();
         }
 
         tm.tm_min = (int)GetUint(date, ++pos);
         if (':' != date[pos])
         {
-            throw JParserError(json, beg + pos, UNEXPECTED);
+            json.seekg(beg);
+            throw Unexpected();
         }
 
         tm.tm_sec = (int)GetUint(date, ++pos);
@@ -470,7 +639,8 @@ time_t JParser::GetDate(const string& json, string::size_type& off)
         auto time = mktime(&tm);
         if (-1 == time)
         {
-            throw JParserError(json, beg, "Failed to parse data");
+            json.seekg(beg);
+            throw exception("Failed to parse date");
         }
 
         if ('z' != tolower(date[pos]))
@@ -487,32 +657,43 @@ time_t JParser::GetDate(const string& json, string::size_type& off)
     }
 }
 
-bool JParser::GetBool(const string& json, string::size_type& off)
+bool JParser::GetBool(istream& json)
 {
-    switch (tolower(json[off]))
+    switch (GetChar(json))
     {
         case 't':
-            if ("true" == json.substr(off, 4))
+        {
+            if ('r' == GetChar(json) &&
+                'u' == GetChar(json) &&
+                'e' == GetChar(json))
             {
-                off += 4;
                 return true;
             }
+
             break;
+        }
 
         case 'f':
-            if ("false" == json.substr(off, 5))
+        {
+            if ('a' == GetChar(json) &&
+                'l' == GetChar(json) &&
+                's' == GetChar(json) &&
+                'e' == GetChar(json))
             {
-                off += 5;
                 return false;
             }
 
-        default:
             break;
+        }
+
+        default: break;
     }
-    throw JParserError(json, off, "Failed to parse bool");
+
+    json.unget();
+    throw Unexpected();
 }
 
-void JParser::GetJson(const string& name, const JField& field, ostringstream& oss)
+void JParser::GetJson(const string& name, const JField& field, ostream& json)
 {
     if (field.IsUndefined())
     {
@@ -521,47 +702,47 @@ void JParser::GetJson(const string& name, const JField& field, ostringstream& os
 
     if (!name.empty())
     {
-        oss << '\"' << name << "\":" ;
+        json << '\"' << name << "\":" ;
     }
 
     if (field.IsNull())
     {
-        oss << "null";
+        json << "null";
         return;
     }
 
     switch (field.Type())
     {
     case JType::INT:
-        oss << (JInt&)field;
+        json << (JInt&)field;
         break;
 
     case JType::UINT:
-        oss << (JUint&)field;
+        json << (JUint&)field;
         break;
 
     case JType::FLT:
-        oss << setprecision(numeric_limits<double>::digits10 + 1) << (JFloat&)field;
+        json << setprecision(numeric_limits<double>::digits10 + 1) << (JFlt&)field;
         break;
 
     case JType::BOOL:
-        oss << ((JBool&)field ? "true" : "false");
+        json << ((JBool&)field ? "true" : "false");
         break;
 
     case JType::DATE:
-        GetJson((JDate&)field, oss);
+        GetJson((JDate&)field, json);
         break;
 
     case JType::STR:
-        GetJson((JString&)field, oss);
+        GetJson((JStr&)field, json);
         break;
 
     case JType::OBJ:
-        GetJson((JObject&)field, oss);
+        GetJson((JObject&)field, json);
         break;
 
     case JType::ARR:
-        GetJson((JArr&)field, oss);
+        GetJson((JArray&)field, json);
         break;
 
     default:
@@ -569,47 +750,9 @@ void JParser::GetJson(const string& name, const JField& field, ostringstream& os
     }
 }
 
-void JParser::GetJson(const JArr& arr, ostringstream& oss)
+void JParser::GetJson(const JObject& obj, ostream& json)
 {
-    oss << '[';
-
-    bool first = true;
-    arr.ForEach([&](const JField& field)
-    {
-        if (!first)
-        {
-            oss << ',';
-        }
-        first = false;
-
-        GetJson("", field, oss);
-    });
-
-    oss << ']';
-}
-
-void JParser::GetJson(const JDate& date, ostringstream& oss)
-{
-    tm tm;
-    time_t dt = date;
-#ifdef WIN32
-    localtime_s(&tm, &dt);
-#else
-    tm = *localtime(&dt);
-#endif
-    auto flags = oss.flags();
-    oss << '\"' << to_string(tm.tm_year + 1900) << '-'
-        << setfill('0') << setw(2) << tm.tm_mon + 1 << '-'
-        << setfill('0') << setw(2) << tm.tm_mday << 'T'
-        << setfill('0') << setw(2) << tm.tm_hour << ':'
-        << setfill('0') << setw(2) << tm.tm_min  << ':'
-        << setfill('0') << setw(2) << tm.tm_sec  << "Z\"";
-    oss.flags(flags);
-}
-
-void JParser::GetJson(const JObject& obj, ostringstream& oss)
-{
-    oss << '{';
+    json << '{';
 
     bool first = true;
     obj.ForEach([&](const string& name, const JField& field)
@@ -621,33 +764,55 @@ void JParser::GetJson(const JObject& obj, ostringstream& oss)
 
         if (!first)
         {
-            oss << ',';
+            json << ',';
         }
         first = false;
 
-        GetJson(name, field, oss);
+        GetJson(name, field, json);
     });
 
-    oss << '}';
+    json << '}';
 }
 
-void JParser::GetJson(const JString& str, ostringstream& oss)
+void JParser::GetJson(const JArray& arr, ostream& json)
 {
-    oss << '\"' << (const string&)str << '\"';
-}
+    json << '[';
 
-string::size_type JParser::FindFirstNotSpace(const string& json, string::size_type off)
-{
-    auto pos = json.find_first_not_of(" \r\n", off);
-    if (std::string::npos == pos)
+    bool first = true;
+    arr.ForEach([&](const JField& field)
     {
-        throw JParserError(json, off, EXPECTMORE);
-    }
+        if (!first)
+        {
+            json << ',';
+        }
+        first = false;
 
-    return pos;
+        GetJson("", field, json);
+    });
+
+    json << ']';
 }
 
-JParserError JParser::TypeMismatch(const std::string& json, size_t off, const std::string& name, JType expect, JType actual)
+void JParser::GetJson(const JDate& date, ostream& json)
 {
-    return JParserError(json, off, "Type mismatch: " + name + ". Expecting: " + to_string(expect) + ". Actual: " + to_string(actual));
+    tm tm;
+    time_t dt = date;
+#ifdef WIN32
+    localtime_s(&tm, &dt);
+#else
+    tm = *localtime(&dt);
+#endif
+    auto flags = json.flags();
+    json << '\"' << to_string(tm.tm_year + 1900) << '-'
+        << setfill('0') << setw(2) << tm.tm_mon + 1 << '-'
+        << setfill('0') << setw(2) << tm.tm_mday << 'T'
+        << setfill('0') << setw(2) << tm.tm_hour << ':'
+        << setfill('0') << setw(2) << tm.tm_min  << ':'
+        << setfill('0') << setw(2) << tm.tm_sec  << "Z\"";
+    json.flags(flags);
+}
+
+void JParser::GetJson(const JStr& str, ostream& json)
+{
+    json << '\"' << (const string&)str << '\"';
 }

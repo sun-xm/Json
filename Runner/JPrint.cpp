@@ -3,6 +3,8 @@
 #include <iomanip>
 #include <limits>
 
+#define IS_WHITESPACE(c) (' ' == c || '\r' == c || '\n' == c || '\t' == c)
+
 using namespace std;
 
 void Indent(ostream& stream, int indent)
@@ -11,29 +13,6 @@ void Indent(ostream& stream, int indent)
     {
         stream << "  ";
     }
-}
-
-void JPrint(ostream& stream, const JArr& arr, const string& name, int indent)
-{
-    Indent(stream, indent);
-
-    if (!name.empty())
-    {
-        stream << name << ": [" << endl;
-    }
-    else
-    {
-        stream << '[' << endl;
-    }
-
-    arr.ForEach([&](const JField& field)
-    {
-        JPrint(stream, field, "", indent + 1);
-        stream << ',' << endl;
-    });
-
-    Indent(stream, indent);
-    stream << ']';
 }
 
 void JPrint(ostream& stream, const JField& field, const string& name, int indent)
@@ -47,7 +26,7 @@ void JPrint(ostream& stream, const JField& field, const string& name, int indent
             break;
 
         case JType::ARR:
-            JPrint(stream, (const JArr&)field, name, indent);
+            JPrint(stream, (const JArray&)field, name, indent);
             break;
 
         default:
@@ -71,6 +50,29 @@ void JPrint(ostream& stream, const JField& field, const string& name, int indent
 
         stream << (field.IsNull() ? "null" : "undefined");
     }
+}
+
+void JPrint(ostream& stream, const JArray& arr, const string& name, int indent)
+{
+    Indent(stream, indent);
+
+    if (!name.empty())
+    {
+        stream << name << ": [" << endl;
+    }
+    else
+    {
+        stream << '[' << endl;
+    }
+
+    arr.ForEach([&](const JField& field)
+    {
+        JPrint(stream, field, "", indent + 1);
+        stream << ',' << endl;
+    });
+
+    Indent(stream, indent);
+    stream << ']';
 }
 
 void JPrint(ostream& stream, const JObject& object, const string& name, int indent)
@@ -99,6 +101,70 @@ void JPrint(ostream& stream, const JObject& object, const string& name, int inde
     stream << '}';
 }
 
+string JError(istream& json, const string& error)
+{
+    ostringstream oss;
+
+    if (json)
+    {
+        auto pos = json.tellg();
+        auto p = json.peek();
+
+        for (int i = 0; i < 3; i++)
+        {
+            for (char peek = json.peek(); json.tellg() > 0 && !IS_WHITESPACE(peek); json.unget(), peek = json.peek());
+            for (char peek = json.peek(); json.tellg() > 0 && IS_WHITESPACE(peek);  json.unget(), peek = json.peek());
+        }
+        for (char peek = json.peek(); json.tellg() > 0 && !IS_WHITESPACE(peek); json.unget(), peek = json.peek());
+        json.get();
+
+        oss << "... ";
+        
+        while (json.tellg() <= pos)
+        {
+            oss << (char)json.get();
+        }
+
+        oss << "\033[1;31m" << "<--(" << error << ")\033[0m";
+
+        while (json.tellg() < pos + streamoff(30))
+        {
+            json.get();
+            if (json.eof())
+            {
+                break;
+            }
+
+            oss << (char)json.peek();
+        }
+
+        if (!json.eof())
+        {
+            oss << " ...";
+        }
+    }
+    else
+    {
+        json.clear();
+        json.seekg(-50, ios::end);
+
+        if (!json)
+        {
+            json.clear();
+            json.seekg(0);
+        }
+        
+        for (char c = json.get(); json; c = json.get())
+        {
+            oss << c;
+        }
+
+        oss << "\033[1;31m" << "<--(" << error << ")\033[0m";
+    }
+
+    return oss.str();
+}
+
 ostream& operator<<(ostream& stream, const JDate& date)
 {
     tm tm;
@@ -120,7 +186,7 @@ ostream& operator<<(ostream& stream, const JDate& date)
     return stream;
 }
 
-ostream& operator<<(ostream& stream, const JString& str)
+ostream& operator<<(ostream& stream, const JStr& str)
 {
     return stream << str.Value;
 }
@@ -128,13 +194,5 @@ ostream& operator<<(ostream& stream, const JString& str)
 ostream& operator<<(ostream& stream, const JField& field)
 {
     JPrint(stream, field, "", 0);
-    return stream;
-}
-
-ostream& operator<<(ostream& stream, const JParserError& error)
-{
-    stream << error.Json.substr(0, min(error.Json.length(), error.Off + 1));
-    stream << "\033[1;31m" << "<--(" << error.What << ")\033[0m";
-    stream << error.Json.substr(min(error.Json.length(), error.Off + 1)) << endl;
     return stream;
 }

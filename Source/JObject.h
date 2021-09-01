@@ -5,6 +5,7 @@
 #include <functional>
 #include <list>
 #include <map>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -99,10 +100,31 @@ public:
 
     std::string Serialize() const
     {
-        return JParser::Serialize(*this);
+        std::ostringstream json;
+        this->Serialize(json);
+        return json.str();
+    }
+
+    bool Serialize(std::ostream& json) const
+    {
+        JParser::Serialize(json, *this);
+        return !!json;
     }
 
     bool Deserialize(const std::string& json)
+    {
+        try
+        {
+            JParser::Deserialize(std::istringstream(json), *this);
+            return true;
+
+        } catch(const std::exception&)
+        {
+            return false;
+        }
+    }
+
+    bool Deserialize(std::istream& json)
     {
         try
         {
@@ -115,24 +137,142 @@ public:
         }
     }
 
-    bool Deserialize(const std::string& json, JParserError& error)
+    bool Deserialize(const std::string& json, std::string& error)
+    {
+        try
+        {
+            JParser::Deserialize(std::istringstream(json), *this);
+            return true;
+
+        } catch(const std::exception& e)
+        {
+            error = e.what();
+            return false;
+        }
+    }
+
+    bool Deserialize(std::istream& json, std::string& error)
     {
         try
         {
             JParser::Deserialize(json, *this);
             return true;
 
-        } catch(const JParserError& e)
+        } catch(const std::exception& e)
         {
-            error = e;
+            error = e.what();
             return false;
-
         }
     }
 
 protected:
     bool undef;
     bool null;
+};
+
+class JArray : public JField
+{
+public:
+    virtual JField* GetNew() = 0;
+    virtual size_t Size() const = 0;
+    virtual void ForEach(const std::function<void(const JField& field)>& cb) const = 0;
+
+    JType Type() const override
+    {
+        return JType::ARR;
+    }
+
+    void Define() { this->undef = false; }
+};
+
+template<typename T>
+class JArr : public JArray
+{
+public:
+    JField* GetNew() override
+    {
+        this->Value.push_back(T());
+        return &this->Value.back();
+    }
+
+    size_t Size() const override
+    {
+        return this->Value.size();
+    }
+
+    void ForEach(const std::function<void(const JField& field)>& cb) const override
+    {
+        if (cb)
+        {
+            for (auto& field : this->Value)
+            {
+                cb(field);
+            }
+        }
+    }
+
+    void ForEachItem(const std::function<void(const T& item)>& cb) const
+    {
+        if (cb)
+        {
+            this->ForEach([&](const JField& field)
+            {
+                cb((const T&)field);
+            });
+        }
+    }
+
+    T& operator[](size_t index)
+    {
+        return this->Value[index];
+    }
+    
+    const T& operator[](size_t index) const
+    {
+        return this->Value[index];
+    }
+    
+    std::vector<T> Value;
+};
+
+template<typename T>
+class JList : public JArray
+{
+public:
+    JField* GetNew() override
+    {
+        this->Value.push_back(T());
+        return &this->Value.back();
+    }
+
+    size_t Size() const override
+    {
+        return this->Value.size();
+    }
+
+    void ForEach(const std::function<void(const JField& field)>& cb) const override
+    {
+        if (cb)
+        {
+            for (auto& field : this->Value)
+            {
+                cb(field);
+            }
+        }
+    }
+
+    void ForEachItem(const std::function<void(const T& item)>& cb) const
+    {
+        if (cb)
+        {
+            this->ForEach([&](const JField& field)
+            {
+                cb((const T&)field);
+            });
+        }
+    }
+
+    std::list<T> Value;
 };
 
 template<typename T>
@@ -172,10 +312,16 @@ public:
     JVALUE(JInt, int64_t, INT);
 };
 
-class JUint : public JValue<uint64_t>
+class JFlt : public JValue<double>
 {
 public:
-    JVALUE(JUint, uint64_t, UINT);
+    JVALUE(JFlt, double, FLT);
+};
+
+class JStr : public JValue<std::string>
+{
+public:
+    JVALUE(JStr, std::string, STR);
 };
 
 class JBool : public JValue<bool>
@@ -184,22 +330,16 @@ public:
     JVALUE(JBool, bool, BOOL);
 };
 
+class JUint : public JValue<uint64_t>
+{
+public:
+    JVALUE(JUint, uint64_t, UINT);
+};
+
 class JDate : public JValue<time_t>
 {
 public:
     JVALUE(JDate, time_t, DATE);
-};
-
-class JFloat : public JValue<double>
-{
-public:
-    JVALUE(JFloat, double, FLT);
-};
-
-class JString : public JValue<std::string>
-{
-public:
-    JVALUE(JString, std::string, STR);
 };
 
 class JObject : public JField
@@ -212,108 +352,19 @@ public:
 
     bool IsUndefined() const override
     {
-        if (this->IsNull())
-        {
-            return false;
-        }
+        bool defined = false;
 
-        bool undef = true;
-
-        this->ForEach([&undef](const std::string&, const JField& field)
+        this->ForEach([&](const std::string&, const JField& field)
         {
             if (!field.IsUndefined())
             {
-                undef = false;
-                return;
+                defined = true;
             }
         });
 
-        return undef;
+        return !defined;
     }
 
     virtual JField* GetField(const std::string&) = 0;
     virtual void ForEach(const std::function<void(const std::string& name, const JField& field)>& field) const = 0;
-};
-
-class JArr : public JField
-{
-public:
-    virtual JField* GetNew() = 0;
-    virtual size_t Size() const = 0;
-    virtual void ForEach(const std::function<void(const JField& field)>& cb) const = 0;
-
-    JType Type() const override
-    {
-        return JType::ARR;
-    }
-
-    void Define() { this->undef = false; }
-};
-
-template<typename T>
-class JList : public JArr
-{
-public:
-    JField* GetNew() override
-    {
-        this->Value.push_back(T());
-        return &this->Value.back();
-    }
-
-    size_t Size() const override
-    {
-        return this->Value.size();
-    }
-
-    void ForEach(const std::function<void(const JField& field)>& cb) const override
-    {
-        if (cb)
-        {
-            for (auto& field : this->Value)
-            {
-                cb(field);
-            }
-        }
-    }
-
-    std::list<T> Value;
-};
-
-template<typename T>
-class JArray : public JArr
-{
-public:
-    JField* GetNew() override
-    {
-        this->Value.push_back(T());
-        return &this->Value.back();
-    }
-
-    size_t Size() const override
-    {
-        return this->Value.size();
-    }
-
-    void ForEach(const std::function<void(const JField& field)>& cb) const override
-    {
-        if (cb)
-        {
-            for (auto& field : this->Value)
-            {
-                cb(field);
-            }
-        }
-    }
-
-    T& operator[](size_t index)
-    {
-        return this->Value[index];
-    }
-    
-    const T& operator[](size_t index) const
-    {
-        return this->Value[index];
-    }
-    
-    std::vector<T> Value;
 };

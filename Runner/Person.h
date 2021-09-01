@@ -4,10 +4,10 @@
 
 struct Address : public JObject
 {
-    JString country;
-    JString city;
-    JString street;
-    JString zipcode;
+    JStr country;
+    JStr city;
+    JStr street;
+    JStr zipcode;
 
     JOBJECT(Address);
 };
@@ -15,21 +15,21 @@ struct Address : public JObject
 struct Person : public JObject
 {
     JUint   age;
-    JString name;
+    JStr    name;
     JDate   birth;
     JBool   married;
-    JFloat  weight;
+    JFlt    weight;
     Address address;
 
-    JArray<JString> skills;
+    JArr<JStr> skills;
 
     JOBJECT(Person);
 };
 
 struct Employee : public Person
 {
-    JUint   id;
-    JString department;
+    JUint id;
+    JStr  department;
     
     JOBJECT_INHERIT(Employee, Person);
 };

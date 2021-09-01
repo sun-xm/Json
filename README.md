@@ -9,16 +9,16 @@ Use Json as a typical c++ object. No need to get()/set().
   
   struct Person : public JObject
   {
-      JInt    id;
-      JString name;
+      JInt id;
+      JStr name;
 
       JOBJECT(Person);
   };
 
   struct Employee : public JObject
   {
-      Person         person;
-      JArray<Person> staff;
+      Person       person;
+      JArr<Person> staff;
 
       JOBJECT(Employee);
   };
