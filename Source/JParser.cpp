@@ -431,7 +431,16 @@ int64_t JParser::GetInt(istream& json)
     }
     else
     {
-        json.unget();
+        if (json.eof())
+        {
+            json.clear();
+            json.seekg(-1, ios::end);
+        }
+        else
+        {
+            json.seekg(-1, ios::cur);
+        }
+
         json >> v;
     }
 
