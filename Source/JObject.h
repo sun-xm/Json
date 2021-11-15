@@ -11,13 +11,17 @@
 
 #define OFFSETOF(t, m)  ((size_t)&reinterpret_cast<char const volatile&>(static_cast<JField&>(((t*)0)->m)))
 #define JOBJECT(CLASS)      public:\
+                                JField* GetField(size_t offset) override\
+                                {\
+                                    return (JField*)((char*)this + offset);\
+                                }\
                                 JField* GetField(const std::string& name) override\
                                 {\
                                     std::map<std::string, std::size_t>::const_iterator itr;\
-                                    itr = fieldOffsets.find(name);\
-                                    if(itr != fieldOffsets.end())\
+                                    itr = FieldOffsets.find(name);\
+                                    if(itr != FieldOffsets.end())\
                                     {\
-                                        return (JField*)((char*)this + itr->second);\
+                                        return this->GetField(itr->second);\
                                     }\
                                     return nullptr;\
                                 }\
@@ -25,26 +29,30 @@
                                 {\
                                     if (cb)\
                                     {\
-                                        for (auto& pair : fieldOffsets)\
+                                        for (auto& pair : FieldOffsets)\
                                         {\
                                             auto& field = *(JField*)((char*)(this) + pair.second);\
                                             cb(pair.first.c_str(), field);\
                                         }\
                                     }\
                                 }\
+                                static const std::map<std::string, std::size_t> FieldOffsets;\
                             private:\
-                                static const std::map<std::string, std::size_t> fieldOffsets;\
                                 typedef CLASS _SELF_
 
 #define JOBJECT_INHERIT(CLASS, BASE)\
                             public:\
+                                JField* GetField(size_t offset) override\
+                                {\
+                                    return (JField*)((char*)this + offset);\
+                                }\
                                 JField* GetField(const std::string& name) override\
                                 {\
                                     std::map<std::string, std::size_t>::const_iterator itr;\
-                                    itr = fieldOffsets.find(name);\
-                                    if(itr != fieldOffsets.end())\
+                                    itr = FieldOffsets.find(name);\
+                                    if(itr != FieldOffsets.end())\
                                     {\
-                                        return (JField*)((char*)this + itr->second);\
+                                        return this->GetField(itr->second);\
                                     }\
                                     return BASE::GetField(name);\
                                 }\
@@ -52,7 +60,7 @@
                                 {\
                                     if (cb)\
                                     {\
-                                        for (auto& pair : fieldOffsets)\
+                                        for (auto& pair : FieldOffsets)\
                                         {\
                                             auto& field = *(JField*)((char*)(this) + pair.second);\
                                             cb(pair.first.c_str(), field);\
@@ -60,11 +68,11 @@
                                         BASE::ForEach(cb);\
                                     }\
                                 }\
-                            protected:\
-                                static const std::map<std::string, std::size_t> fieldOffsets;\
+                                static const std::map<std::string, std::size_t> FieldOffsets;\
+                            private:\
                                 typedef CLASS _SELF_
 
-#define BEG_JFIELDS(CLASS)  const std::map<std::string, std::size_t> CLASS::fieldOffsets = {
+#define BEG_JFIELDS(CLASS)  const std::map<std::string, std::size_t> CLASS::FieldOffsets = {
 #define JFIELD(FIELD)           std::make_pair(std::string(#FIELD), OFFSETOF(_SELF_, FIELD))
 #define JFIELD_KEY(FIELD, KEY)  std::make_pair(std::string(KEY),    OFFSETOF(_SELF_, FIELD))
 #define END_JFIELDS         };
@@ -365,6 +373,7 @@ public:
         return !defined;
     }
 
+    virtual JField* GetField(size_t offset) = 0;
     virtual JField* GetField(const std::string&) = 0;
     virtual void ForEach(const std::function<void(const std::string& name, const JField& field)>& field) const = 0;
 };

@@ -24,7 +24,6 @@ static std::string to_string(JType type)
 
         case JType::UINT:
             return "JType::UINT";
-            break;
 
         case JType::FLT:
             return "JType::FLT";
