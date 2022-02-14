@@ -64,9 +64,9 @@ Use Json as a typical c++ object. No need to get()/set().
   }
   ```
   
-  A json object can also inherit another. See more details in Runner example.
+  A json object can also inherit another. See more details in sample code.
   
-## Compile Runner example:
+## Compilation:
   ```
   cd Json
   mkdir build

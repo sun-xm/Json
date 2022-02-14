@@ -50,7 +50,7 @@ inline char FirstNotSpace(istream& json)
     {
         c = GetChar(json);
 
-    } while(' ' == c || '\r' == c || '\n' == c || '\t' == c);
+    } while (' ' == c || '\r' == c || '\n' == c || '\t' == c);
 
     return c;
 }
@@ -62,10 +62,21 @@ void JParser::Serialize(ostream& json, const JField& field)
 
 void JParser::Deserialize(istream& json, JField& field)
 {
+    char c;
+    do
+    {
+        json.get(c);
+        if (json.eof())
+        {
+            return;
+        }
+    } while (' ' == c || '\r' == c || '\n' == c || '\t' == c);
+
+    json.unget();
+    
     GetVal(json, "", &field);
 
-    char c;
-    json >> c;
+    json.get(c);
 
     while (!json.eof())
     {
@@ -75,7 +86,7 @@ void JParser::Deserialize(istream& json, JField& field)
             throw Unexpected();
         }
 
-        json >> c;
+        json.get(c);
     }
 }
 
@@ -263,6 +274,11 @@ void JParser::GetArr(istream& json, const string& name, JArray* arr)
 
 void JParser::GetObj(istream& json, JObject* obj)
 {
+    if (obj)
+    {
+        obj->Define();
+    }
+    
     auto c = FirstNotSpace(json);
     if ('}' == c)
     {

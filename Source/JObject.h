@@ -358,20 +358,7 @@ public:
         return JType::OBJ;
     }
 
-    bool IsUndefined() const override
-    {
-        bool defined = false;
-
-        this->ForEach([&](const std::string&, const JField& field)
-        {
-            if (!field.IsUndefined())
-            {
-                defined = true;
-            }
-        });
-
-        return !defined;
-    }
+    void Define() { this->undef = false; }
 
     virtual JField* GetField(size_t offset) = 0;
     virtual JField* GetField(const std::string&) = 0;
