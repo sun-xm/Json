@@ -14,19 +14,19 @@ const string Numbers("+-.0123456789");
 
 wstring_convert<codecvt_utf8<wchar_t>> utf8;
 
-inline exception TypeMismatch(const string& name, JType expected, JType actual)
+inline runtime_error TypeMismatch(const string& name, JType expected, JType actual)
 {
-    return exception(("Type mismatch: " + name + ". Expecting: " + to_string(expected) + ". Actual: " + to_string(actual)).c_str());
+    return runtime_error(("Type mismatch: " + name + ". Expecting: " + to_string(expected) + ". Actual: " + to_string(actual)).c_str());
 }
 
-inline exception ExpectMore()
+inline runtime_error ExpectMore()
 {
-    return exception("Expecting more charactors");
+    return runtime_error("Expecting more charactors");
 }
 
-inline exception Unexpected()
+inline runtime_error Unexpected()
 {
-    return exception("Unexpected charactor");
+    return runtime_error("Unexpected charactor");
 }
 
 inline char GetChar(istream& json)
@@ -197,12 +197,6 @@ void JParser::GetVal(istream& json, const string& name, JField* field)
                                 case JType::INT:
                                 {
                                     *(JInt*)field = GetInt(json);
-                                    break;
-                                }
-
-                                case JType::UINT:
-                                {
-                                    *(JUint*)field = GetUint(json);
                                     break;
                                 }
 
@@ -456,7 +450,7 @@ int64_t JParser::GetInt(istream& json)
         {
             json.seekg(-1, ios::cur);
         }
-
+        
         json >> v;
     }
 
@@ -479,7 +473,7 @@ int64_t JParser::GetInt(const string& json, string::size_type& off)
 
     if (end == json.c_str() + off)
     {
-        throw exception("Failed to parse int");
+        throw runtime_error("Failed to parse int");
     }
 
     off = end - json.c_str();
@@ -522,7 +516,7 @@ uint64_t JParser::GetUint(const string& json, string::size_type& off)
 
     if (end == json.c_str() + off)
     {
-        throw exception("Failed to parse uint");
+        throw runtime_error("Failed to parse uint");
     }
 
     off = end - json.c_str();
@@ -665,7 +659,7 @@ time_t JParser::GetDate(istream& json)
         if (-1 == time)
         {
             json.seekg(beg);
-            throw exception("Failed to parse date");
+            throw runtime_error("Failed to parse date");
         }
 
         if ('z' != tolower(date[pos]))
@@ -740,10 +734,6 @@ void JParser::GetJson(const string& name, const JField& field, ostream& json)
     {
     case JType::INT:
         json << (JInt&)field;
-        break;
-
-    case JType::UINT:
-        json << (JUint&)field;
         break;
 
     case JType::FLT:

@@ -123,7 +123,8 @@ public:
     {
         try
         {
-            JParser::Deserialize(std::istringstream(json), *this);
+            auto stream = std::istringstream(json);
+            JParser::Deserialize(stream, *this);
             return true;
 
         } catch(const std::exception&)
@@ -149,7 +150,8 @@ public:
     {
         try
         {
-            JParser::Deserialize(std::istringstream(json), *this);
+            auto stream = std::istringstream(json);
+            JParser::Deserialize(stream, *this);
             return true;
 
         } catch(const std::exception& e)
@@ -336,12 +338,6 @@ class JBool : public JValue<bool>
 {
 public:
     JVALUE(JBool, bool, BOOL);
-};
-
-class JUint : public JValue<uint64_t>
-{
-public:
-    JVALUE(JUint, uint64_t, UINT);
 };
 
 class JDate : public JValue<time_t>

@@ -14,7 +14,7 @@ struct Address : public JObject
 
 struct Person : public JObject
 {
-    JUint   age;
+    JInt    age;
     JStr    name;
     JDate   birth;
     JBool   married;
@@ -28,8 +28,8 @@ struct Person : public JObject
 
 struct Employee : public Person
 {
-    JUint id;
-    JStr  department;
+    JInt id;
+    JStr department;
     
     JOBJECT_INHERIT(Employee, Person);
 };

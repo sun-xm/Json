@@ -4,7 +4,7 @@ add_executable(${PROJECT_NAME} ${SRC_CPP} main.cpp Person.cpp JPrint.cpp)
 
 if(CMAKE_GENERATOR MATCHES "Visual Studio")
     set(WORK_DIR "${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/")
-elseif(CMAKE_GENERATOR MATCHES "MinGW")
+else()
     set(WORK_DIR "${CMAKE_CURRENT_BINARY_DIR}/")
 endif()
 

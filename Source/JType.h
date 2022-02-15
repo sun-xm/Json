@@ -6,7 +6,6 @@
 enum class JType
 {
     INT,
-    UINT,
     FLT,
     STR,
     OBJ,
@@ -21,9 +20,6 @@ static std::string to_string(JType type)
     {
         case JType::INT:
             return "JType::INT";
-
-        case JType::UINT:
-            return "JType::UINT";
 
         case JType::FLT:
             return "JType::FLT";
