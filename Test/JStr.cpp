@@ -24,7 +24,7 @@ int main()
     }
 
     jstr = JStr();
-    if (!jstr.Deserialize("\"\t\n\\\"\"") || "\t\n\"" != jstr.Value)
+    if (!jstr.Deserialize("\"\t\\t \n\\n \\\" nrt\"") || "\t\t \n\n \" nrt" != jstr.Value)
     {
         return -1;
     }

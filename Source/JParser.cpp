@@ -383,6 +383,24 @@ string JParser::GetStr(istream& json)
                 break;
             }
 
+            case 'n':
+            {
+                oss << ('\\' == p ? '\n' : 'n');
+                break;
+            }
+
+            case 'r':
+            {
+                oss << ('\\' == p ? '\r' : 'r');
+                break;
+            }
+
+            case 't':
+            {
+                oss << ('\\' == p ? '\t' : 't');
+                break;
+            }
+
             case 'u':
             {
                 if ('\\' == p)
