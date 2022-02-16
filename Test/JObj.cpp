@@ -32,28 +32,29 @@ END_JFIELDS
 int main() 
 {
     std::string e;
+    size_t w;
     JOuter outer;
 
     outer = JOuter();
-    if (!outer.Deserialize("", e) || !outer.IsUndefined() || outer.IsNull() || outer.HasValue())
+    if (!outer.Deserialize("", e, w) || !outer.IsUndefined() || outer.IsNull() || outer.HasValue())
     {
         return -1;
     }
 
     outer = JOuter();
-    if (!outer.Deserialize("null", e) || outer.IsUndefined() || !outer.IsNull() || outer.HasValue())
+    if (!outer.Deserialize("null", e, w) || outer.IsUndefined() || !outer.IsNull() || outer.HasValue())
     {
         return -1;
     }
 
     outer = JOuter();
-    if (!outer.Deserialize("{}", e) || outer.IsUndefined() || outer.IsNull() || !outer.HasValue())
+    if (!outer.Deserialize("{}", e, w) || outer.IsUndefined() || outer.IsNull() || !outer.HasValue())
     {
         return -1;
     }
 
     outer = JOuter();
-    if (!outer.Deserialize("{\"str\":\"str\", \"date\":\"1999-04-23T18:25:43.511Z\", \"arr\":[\"1\", \"2\"], \"inner\":{\"int\":123, \"flt\":1.23}}", e))
+    if (!outer.Deserialize("{\"str\":\"str\", \"date\":\"1999-04-23T18:25:43.511Z\", \"arr\":[\"1\", \"2\"], \"inner\":{\"int\":123, \"flt\":1.23}}", e, w))
     {
         return -1;
     }

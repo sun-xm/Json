@@ -32,7 +32,7 @@ inline runtime_error Unexpected()
 inline char GetChar(istream& json)
 {
     char c;
-    json.get(c);
+    json.read(&c, 1);
 
     if (json.eof())
     {
@@ -65,28 +65,28 @@ void JParser::Deserialize(istream& json, JField& field)
     char c;
     do
     {
-        json.get(c);
+        json.read(&c, 1);
         if (json.eof())
         {
             return;
         }
     } while (' ' == c || '\r' == c || '\n' == c || '\t' == c);
 
-    json.unget();
+    json.seekg(-1, ios::cur);
     
     GetVal(json, "", &field);
 
-    json.get(c);
+    json.read(&c, 1);
 
     while (!json.eof())
     {
         if ('\t' != c && '\r' != c && '\n' != c && ' ' != c)
         {
-            json.unget();
+            json.seekg(-1, ios::cur);
             throw Unexpected();
         }
 
-        json.get(c);
+        json.read(&c, 1);
     }
 }
 
@@ -99,7 +99,7 @@ void JParser::GetVal(istream& json, const string& name, JField* field)
         {
             if (field && JType::OBJ != field->Type())
             {
-                json.unget();
+                json.seekg(-1, ios::cur);
                 throw TypeMismatch(name, field->Type(), JType::OBJ);
             }
             GetObj(json, (JObject*)field);
@@ -110,7 +110,7 @@ void JParser::GetVal(istream& json, const string& name, JField* field)
         {
             if (field && JType::ARR != field->Type())
             {
-                json.unget();
+                json.seekg(-1, ios::cur);
                 throw TypeMismatch(name, field->Type(), JType::ARR);
             }
             GetArr(json, name, (JArray*)field);
@@ -131,7 +131,7 @@ void JParser::GetVal(istream& json, const string& name, JField* field)
                 }
                 else
                 {
-                    json.unget();
+                    json.seekg(-1, ios::cur);
                     throw TypeMismatch(name, field->Type(), JType::STR);
                 }
             }
@@ -144,7 +144,7 @@ void JParser::GetVal(istream& json, const string& name, JField* field)
 
         default:
         {
-            json.unget();
+            json.seekg(-1, ios::cur);
 
             switch (c)
             {
@@ -180,7 +180,7 @@ void JParser::GetVal(istream& json, const string& name, JField* field)
                     }
                     else
                     {
-                        json.unget();
+                        json.seekg(-1, ios::cur);
                         throw Unexpected();
                     }
                     break;
@@ -243,7 +243,7 @@ void JParser::GetArr(istream& json, const string& name, JArray* arr)
         return;
     }
 
-    json.unget();
+    json.seekg(-1, ios::cur);
 
     do
     {
@@ -259,7 +259,7 @@ void JParser::GetArr(istream& json, const string& name, JArray* arr)
 
             default:
             {
-                json.unget();
+                json.seekg(-1, ios::cur);
                 throw Unexpected();
             }
         }
@@ -283,7 +283,7 @@ void JParser::GetObj(istream& json, JObject* obj)
     {
         if ('\"' != c)
         {
-            json.unget();
+            json.seekg(-1, ios::cur);
             throw Unexpected();
         }
 
@@ -295,7 +295,7 @@ void JParser::GetObj(istream& json, JObject* obj)
         {
             if (f && JType::OBJ != f->Type())
             {
-                json.unget();
+                json.seekg(-1, ios::cur);
                 throw TypeMismatch(n, f->Type(), JType::OBJ);
             }
 
@@ -310,7 +310,7 @@ void JParser::GetObj(istream& json, JObject* obj)
 
         if (':' != c)
         {
-            json.unget();
+            json.seekg(-1, ios::cur);
             throw Unexpected();
         }
 
@@ -333,7 +333,7 @@ void JParser::GetObj(istream& json, JObject* obj)
 
             default:
             {
-                json.unget();
+                json.seekg(-1, ios::cur);
                 throw Unexpected();
             }
         }
@@ -416,7 +416,7 @@ string JParser::GetStr(istream& json)
                             continue;
                         }
 
-                        json.unget();
+                        json.seekg(-1, ios::cur);
                         throw Unexpected();
                     }
                     buf[4] = '\0';
@@ -433,7 +433,7 @@ string JParser::GetStr(istream& json)
             {
                 if ('\\' == p)
                 {
-                    json.unget();
+                    json.seekg(-1, ios::cur);
                     throw Unexpected();
                 }
                 oss << c;
@@ -454,7 +454,7 @@ int64_t JParser::GetInt(istream& json)
     auto c = GetChar(json);
     if ('0' == c && 'x' == json.peek())
     {
-        json.get();
+        json.seekg(1, ios::cur);
         json >> hex >> v;
     }
     else
@@ -506,12 +506,12 @@ uint64_t JParser::GetUint(istream& json)
     auto c = GetChar(json);
     if ('0' == c && 'x' == json.peek())
     {
-        json.get();
+        json.seekg(1, ios::cur);
         json >> hex >> v;
     }
     else
     {
-        json.unget();
+        json.seekg(-1, ios::cur);
         json >> v;
     }
 
@@ -571,7 +571,7 @@ string JParser::GetName(istream& json)
             {
                 if ('\\' != p)
                 {
-                    json.unget();
+                    json.seekg(-1, ios::cur);
                     return false;
                 }
 
@@ -583,13 +583,13 @@ string JParser::GetName(istream& json)
             {
                 if ('\\' == p)
                 {
-                    json.unget();
+                    json.seekg(-1, ios::cur);
                     throw Unexpected();
                 }
 
                 if ('.' == c)
                 {
-                    json.unget();
+                    json.seekg(-1, ios::cur);
                     return false;
                 }
 
@@ -726,7 +726,7 @@ bool JParser::GetBool(istream& json)
         default: break;
     }
 
-    json.unget();
+    json.seekg(-1, ios::cur);
     throw Unexpected();
 }
 

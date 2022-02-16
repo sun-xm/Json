@@ -11,7 +11,7 @@ int main(int argc, char* argv[])
 {
     string e;
 
-    ifstream json("person.json");
+    ifstream json("person.json", ios::binary);
     if (!json.is_open())
     {
         cout << "Failed to open person.json" << endl;

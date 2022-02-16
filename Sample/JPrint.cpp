@@ -103,65 +103,60 @@ void JPrint(ostream& stream, const JObject& object, const string& name, int inde
 
 string JError(istream& json, const string& error)
 {
-    ostringstream oss;
-
-    if (json)
+    if (!json)
     {
-        auto pos = json.tellg();
-        auto p = json.peek();
+        json.clear();
+        json.seekg(-1, ios::end);
+    }
 
-        for (int i = 0; i < 3; i++)
+    if (!json)
+    {
+        return error;
+    }
+
+    auto g = json.tellg();
+    if (g > 0)
+    {
+        json.seekg(-1, ios::cur);
+    }
+
+    for (int i = 0; i < 3 && json.tellg() > 0; i++)
+    {
+        char c;
+
+        while (json.tellg() > 0)
         {
-            for (char peek = json.peek(); json.tellg() > 0 && !IS_WHITESPACE(peek); json.unget(), peek = json.peek());
-            for (char peek = json.peek(); json.tellg() > 0 && IS_WHITESPACE(peek);  json.unget(), peek = json.peek());
-        }
-        for (char peek = json.peek(); json.tellg() > 0 && !IS_WHITESPACE(peek); json.unget(), peek = json.peek());
-        json.get();
+            json.read(&c, 1);
+            json.seekg(-2, ios::cur);
 
-        oss << "... ";
-        
-        while (json.tellg() <= pos)
-        {
-            oss << (char)json.get();
-        }
-
-        oss << "\033[1;31m" << "<--(" << error << ")\033[0m";
-
-        while (json.tellg() < pos + streamoff(30))
-        {
-            json.get();
-            if (json.eof())
+            if (IS_WHITESPACE(c))
             {
                 break;
             }
-
-            oss << (char)json.peek();
         }
 
-        if (!json.eof())
+        while (json.tellg() > 0)
         {
-            oss << " ...";
+            json.read(&c, 1);
+            json.seekg(-2, ios::cur);
+
+            if (!IS_WHITESPACE(c))
+            {
+                break;
+            }
         }
     }
-    else
+
+    ostringstream oss;
+
+    while (json.tellg() <= g)
     {
-        json.clear();
-        json.seekg(-50, ios::end);
-
-        if (!json)
-        {
-            json.clear();
-            json.seekg(0);
-        }
-        
-        for (char c = json.get(); json; c = json.get())
-        {
-            oss << c;
-        }
-
-        oss << "\033[1;31m" << "<--(" << error << ")\033[0m";
+        char c;
+        json.read(&c, 1);
+        oss << c;
     }
-
+    oss << "\033[1;31m" << "<--(" << error << ")\033[0m";
+    
     return oss.str();
 }
 

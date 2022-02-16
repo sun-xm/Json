@@ -121,9 +121,10 @@ public:
 
     bool Deserialize(const std::string& json)
     {
+        auto stream = std::istringstream(json);
+
         try
         {
-            auto stream = std::istringstream(json);
             JParser::Deserialize(stream, *this);
             return true;
 
@@ -146,16 +147,18 @@ public:
         }
     }
 
-    bool Deserialize(const std::string& json, std::string& error)
+    bool Deserialize(const std::string& json, std::string& error, size_t& where)
     {
+        auto stream = std::istringstream(json);
+
         try
         {
-            auto stream = std::istringstream(json);
             JParser::Deserialize(stream, *this);
             return true;
 
         } catch(const std::exception& e)
         {
+            where = stream ? stream.tellg() : json.length();
             error = e.what();
             return false;
         }
