@@ -6,7 +6,7 @@ Use Json as a typical c++ object. No need to get()/set().
   ### Inherit your json object from JObject and declare it with macro JOBJECT():
   ```
   #include <JObject.h>
-  
+
   struct Person : public JObject
   {
       JInt id;
@@ -36,7 +36,7 @@ Use Json as a typical c++ object. No need to get()/set().
       JFIELD(staff)
   END_JFIELDS
   ```
-  
+
   ### Deserialize Employee object from a json string:
   ```
   {
@@ -49,23 +49,23 @@ Use Json as a typical c++ object. No need to get()/set().
       {"id": 2, "name":"mike"}
     ]
   }
-  
+
   #include <iostream>
-  
+
   int main(int argc, char* argv[])
   {
       Employee e;
       e.Deserialize("{\"person\":{\"id\":0,\"name\":\"geoge\"},\"staff\":[{\"id\":1,\"name\":\"susan\"},{\"id\":2,\"name\":\"mike\"}]}");
-      
+
       std::cout << e.person.name << std::endl;
       std::cout << e.staff[1].name << std::endl;
-      
+
       return 0;
   }
   ```
-  
+
   A json object can also inherit another. See more details in sample code.
-  
+
 ## Compilation:
   ```
   cd Json

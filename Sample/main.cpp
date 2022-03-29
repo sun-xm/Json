@@ -7,6 +7,15 @@
 
 using namespace std;
 
+struct JObj : public JObject
+{
+    using JObject::operator=;
+    JOBJECT(JObj);
+};
+
+BEG_JFIELDS(JObj)
+END_JFIELDS
+
 int main(int argc, char* argv[])
 {
     string e;

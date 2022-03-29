@@ -11,6 +11,12 @@
 
 #define OFFSETOF(t, m)  ((size_t)&reinterpret_cast<char const volatile&>(static_cast<JField&>(((t*)0)->m)))
 #define JOBJECT(CLASS)      public:\
+                                std::nullptr_t operator=(std::nullptr_t) override\
+                                {\
+                                    this->undef = false;\
+                                    this->null  = true;\
+                                    return nullptr;\
+                                }\
                                 JField* GetField(size_t offset) override\
                                 {\
                                     return (JField*)((char*)this + offset);\
@@ -42,6 +48,12 @@
 
 #define JOBJECT_INHERIT(CLASS, BASE)\
                             public:\
+                                std::nullptr_t operator=(std::nullptr_t) override\
+                                {\
+                                    this->undef = false;\
+                                    this->null  = true;\
+                                    return nullptr;\
+                                }\
                                 JField* GetField(size_t offset) override\
                                 {\
                                     return (JField*)((char*)this + offset);\
@@ -158,7 +170,7 @@ public:
 
         } catch(const std::exception& e)
         {
-            where = stream ? stream.tellg() : json.length();
+            where = stream ? (size_t)stream.tellg() : json.length();
             error = e.what();
             return false;
         }
@@ -239,12 +251,12 @@ public:
     {
         return this->Value[index];
     }
-    
+
     const T& operator[](size_t index) const
     {
         return this->Value[index];
     }
-    
+
     std::vector<T> Value;
 };
 

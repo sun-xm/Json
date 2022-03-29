@@ -73,7 +73,7 @@ void JParser::Deserialize(istream& json, JField& field)
     } while (' ' == c || '\r' == c || '\n' == c || '\t' == c);
 
     json.seekg(-1, ios::cur);
-    
+
     GetVal(json, "", &field);
 
     json.read(&c, 1);
@@ -272,7 +272,7 @@ void JParser::GetObj(istream& json, JObject* obj)
     {
         obj->Define();
     }
-    
+
     auto c = FirstNotSpace(json);
     if ('}' == c)
     {
@@ -468,7 +468,7 @@ int64_t JParser::GetInt(istream& json)
         {
             json.seekg(-1, ios::cur);
         }
-        
+
         json >> v;
     }
 
@@ -479,7 +479,7 @@ int64_t JParser::GetInt(const string& json, string::size_type& off)
 {
     char* end;
     int64_t value;
-    
+
     if (json.length() > off + 2 && '0' == json[off] && ('x' == json[off + 1] || 'X' == json[off + 1]))
     {
         value = std::strtoll(json.c_str() + off, &end, 16);

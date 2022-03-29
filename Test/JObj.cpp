@@ -29,7 +29,7 @@ BEG_JFIELDS(JOuter)
     JFIELD(inner)
 END_JFIELDS
 
-int main() 
+int main()
 {
     std::string e;
     size_t w;

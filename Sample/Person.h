@@ -30,6 +30,6 @@ struct Employee : public Person
 {
     JInt id;
     JStr department;
-    
+
     JOBJECT_INHERIT(Employee, Person);
 };

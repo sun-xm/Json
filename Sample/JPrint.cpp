@@ -156,7 +156,7 @@ string JError(istream& json, const string& error)
         oss << c;
     }
     oss << "\033[1;31m" << "<--(" << error << ")\033[0m";
-    
+
     return oss.str();
 }
 
@@ -172,10 +172,10 @@ ostream& operator<<(ostream& stream, const JDate& date)
 
     auto flags = stream.flags();
     stream << to_string(tm.tm_year + 1900) << '-'
-           << setfill('0') << setw(2) << tm.tm_mon + 1 << '-' 
-           << setfill('0') << setw(2) << tm.tm_mday << 'T' 
-           << setfill('0') << setw(2) << tm.tm_hour << ':' 
-           << setfill('0') << setw(2) << tm.tm_min << ':' 
+           << setfill('0') << setw(2) << tm.tm_mon + 1 << '-'
+           << setfill('0') << setw(2) << tm.tm_mday << 'T'
+           << setfill('0') << setw(2) << tm.tm_hour << ':'
+           << setfill('0') << setw(2) << tm.tm_min << ':'
            << setfill('0') << setw(2) << tm.tm_sec << 'Z';
     stream.flags(flags);
     return stream;
