@@ -199,7 +199,6 @@ class JArray : public JField
 {
 public:
     virtual JField* GetNew() = 0;
-    virtual size_t Size() const = 0;
     virtual void ForEach(const std::function<void(const JField& field)>& cb) const = 0;
 
     JType Type() const override
@@ -218,11 +217,6 @@ public:
     {
         this->Value.push_back(T());
         return &this->Value.back();
-    }
-
-    size_t Size() const override
-    {
-        return this->Value.size();
     }
 
     void ForEach(const std::function<void(const JField& field)>& cb) const override
@@ -255,6 +249,11 @@ public:
     const T& operator[](size_t index) const
     {
         return this->Value[index];
+    }
+
+    const std::vector<T>& operator()() const
+    {
+        return this->Value;
     }
 
     std::vector<T> Value;
@@ -318,7 +317,38 @@ public:
         this->null  = false;
         return *this;
     }
+
+    bool operator==(const JValue<T>& other)
+    {
+        if (this->undef && other.undef)
+        {
+            return true;
+        }
+
+        if (this->undef != other.undef)
+        {
+            return false;
+        }
+
+        if (this->null && other.null)
+        {
+            return true;
+        }
+
+        if (this->null != other.null)
+        {
+            return false;
+        }
+
+        return this->Value == other.Value;
+    }
+
     operator const T&() const
+    {
+        return this->Value;
+    }
+
+    const T& operator()() const
     {
         return this->Value;
     }

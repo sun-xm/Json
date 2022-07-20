@@ -36,5 +36,10 @@ int main()
         return -1;
     }
 
+    if (0x1AF != jint())
+    {
+        return -1;
+    }
+
     return 0;
 }
