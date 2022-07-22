@@ -19,7 +19,7 @@ int main()
     }
 
     jarr = JArr<JInt>();
-    if (!jarr.Deserialize("[]", e, w) || jarr.IsUndefined() || jarr.IsNull() || !jarr.HasValue() || 0 != jarr.Size())
+    if (!jarr.Deserialize("[]", e, w) || jarr.IsUndefined() || jarr.IsNull() || !jarr.HasValue() || 0 != jarr().size())
     {
         return -1;
     }
