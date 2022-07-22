@@ -260,46 +260,6 @@ public:
 };
 
 template<typename T>
-class JList : public JArray
-{
-public:
-    JField* GetNew() override
-    {
-        this->Value.push_back(T());
-        return &this->Value.back();
-    }
-
-    size_t Size() const override
-    {
-        return this->Value.size();
-    }
-
-    void ForEach(const std::function<void(const JField& field)>& cb) const override
-    {
-        if (cb)
-        {
-            for (auto& field : this->Value)
-            {
-                cb(field);
-            }
-        }
-    }
-
-    void ForEachItem(const std::function<void(const T& item)>& cb) const
-    {
-        if (cb)
-        {
-            this->ForEach([&](const JField& field)
-            {
-                cb((const T&)field);
-            });
-        }
-    }
-
-    std::list<T> Value;
-};
-
-template<typename T>
 class JValue : public JField
 {
 public:
