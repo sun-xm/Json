@@ -253,6 +253,11 @@ public:
         return this->Value[index];
     }
 
+    std::vector<T>& operator()()
+    {
+        return this->Value;
+    }
+
     const std::vector<T>& operator()() const
     {
         return this->Value;
