@@ -212,8 +212,10 @@ public:
 template<typename T>
 class JArr : public JArray
 {
+    static_assert(std::is_base_of<JField, T>::value, "T must inherit from JField");
+
 public:
-    JField* GetNew() override
+    T* GetNew() override
     {
         this->Value.push_back(T());
         return &this->Value.back();
