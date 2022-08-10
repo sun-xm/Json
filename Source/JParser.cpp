@@ -8,6 +8,9 @@
 #include <locale>
 #include <sstream>
 
+#define GETFIELD(f, n)  (JType::OBJ == f->Type() ? ((JObject*)f)->GetField(n) : ((JVar*)f)->GetNewField(n))
+#define GETNEW(f)       (JType::ARR == f->Type() ? ((JArray*)f)->GetNew() : ((JVar*)f)->GetNewItem())
+
 using namespace std;
 
 const string Numbers("+-.0123456789");
@@ -97,7 +100,7 @@ void JParser::GetVal(istream& json, const string& name, JField* field)
     {
         case '{':
         {
-            if (field && JType::OBJ != field->Type())
+            if (field && JType::OBJ != field->Type() && JType::VAR != field->Type())
             {
                 json.seekg(-1, ios::cur);
                 throw TypeMismatch(name, field->Type(), JType::OBJ);
@@ -108,12 +111,12 @@ void JParser::GetVal(istream& json, const string& name, JField* field)
 
         case '[':
         {
-            if (field && JType::ARR != field->Type())
+            if (field && JType::ARR != field->Type() && JType::VAR != field->Type())
             {
                 json.seekg(-1, ios::cur);
                 throw TypeMismatch(name, field->Type(), JType::ARR);
             }
-            GetArr(json, name, (JArray*)field);
+            GetArr(json, name, field);
             break;
         }
 
@@ -124,6 +127,10 @@ void JParser::GetVal(istream& json, const string& name, JField* field)
                 if (JType::STR == field->Type())
                 {
                     *(JStr*)field = GetStr(json);
+                }
+                else if (JType::VAR == field->Type())
+                {
+                    *(JVar*)field = GetStr(json);
                 }
                 else if (JType::DATE == field->Type())
                 {
@@ -153,11 +160,18 @@ void JParser::GetVal(istream& json, const string& name, JField* field)
                 {
                     if (field)
                     {
-                        if (JType::BOOL != field->Type())
+                        if (JType::BOOL == field->Type())
+                        {
+                            *(JBool*)field = GetBool(json);
+                        }
+                        else if (JType::VAR == field->Type())
+                        {
+                            *(JVar*)field = GetBool(json);
+                        }
+                        else
                         {
                             throw TypeMismatch(name, field->Type(), JType::BOOL);
                         }
-                        *(JBool*)field = GetBool(json);
                     }
                     else
                     {
@@ -206,6 +220,12 @@ void JParser::GetVal(istream& json, const string& name, JField* field)
                                     break;
                                 }
 
+                                case JType::VAR:
+                                {
+                                    *(JVar*)field = GetFlt(json);
+                                    break;
+                                }
+
                                 default:
                                 {
                                     throw TypeMismatch(name, field->Type(), JType::FLT);
@@ -230,11 +250,18 @@ void JParser::GetVal(istream& json, const string& name, JField* field)
     }
 }
 
-void JParser::GetArr(istream& json, const string& name, JArray* arr)
+void JParser::GetArr(istream& json, const string& name, JField* arr)
 {
     if (arr)
     {
-        arr->Define();
+        if (JType::ARR == arr->Type())
+        {
+            ((JArray*)arr)->Define();
+        }
+        else
+        {
+            ((JVar*)arr)->Define();
+        }
     }
 
     auto c = FirstNotSpace(json);
@@ -247,7 +274,7 @@ void JParser::GetArr(istream& json, const string& name, JArray* arr)
 
     do
     {
-        GetVal(json, name, arr ? arr->GetNew() : nullptr);
+        GetVal(json, name, arr ? GETNEW(arr) : nullptr);
 
     } while ([&]
     {
@@ -266,11 +293,18 @@ void JParser::GetArr(istream& json, const string& name, JArray* arr)
     }());
 }
 
-void JParser::GetObj(istream& json, JObject* obj)
+void JParser::GetObj(istream& json, JField* obj)
 {
     if (obj)
     {
-        obj->Define();
+        if (JType::OBJ == obj->Type())
+        {
+            ((JObject*)obj)->Define();
+        }
+        else
+        {
+            ((JVar*)obj)->Define();
+        }
     }
 
     auto c = FirstNotSpace(json);
@@ -288,19 +322,19 @@ void JParser::GetObj(istream& json, JObject* obj)
         }
 
         auto n = GetName(json);
-        auto f = obj ? obj->GetField(n) : nullptr;
+        auto f = obj ? GETFIELD(obj, n) : nullptr;
 
         c = GetChar(json);
         while ('.' == c)
         {
-            if (f && JType::OBJ != f->Type())
+            if (f && JType::OBJ != f->Type() && JType::VAR != f->Type())
             {
                 json.seekg(-1, ios::cur);
                 throw TypeMismatch(n, f->Type(), JType::OBJ);
             }
 
             n = GetName(json);
-            f = f ? ((JObject*)f)->GetField(n) : nullptr;
+            f = f ? GETFIELD(f, n) : nullptr;
 
             c = GetChar(json);
         }
@@ -778,6 +812,10 @@ void JParser::GetJson(const string& name, const JField& field, ostream& json)
         GetJson((JArray&)field, json);
         break;
 
+    case JType::VAR:
+        GetJson((JVar&)field, json);
+        break;
+
     default:
         throw runtime_error(name + ": unknown json type");
     }
@@ -848,4 +886,73 @@ void JParser::GetJson(const JDate& date, ostream& json)
 void JParser::GetJson(const JStr& str, ostream& json)
 {
     json << '\"' << (const string&)str << '\"';
+}
+
+void JParser::GetJson(const JVar& var, ostream& json)
+{
+    switch (var.Subtype())
+    {
+        case JType::BOOL:
+        {
+            json << var.Bool ? "true" : "false";
+            break;
+        }
+
+        case JType::FLT:
+        {
+            json << setprecision(numeric_limits<double>::digits10 + 1) << var.Flt;
+            break;
+        }
+
+        case JType::STR:
+        {
+            json << '\"' << var.Str << '\"';
+            break;
+        }
+
+        case JType::OBJ:
+        {
+            json << '{';
+
+            bool first = true;
+            var.ForEachField([&](const string& name, const JVar& var)
+            {
+                if (var.IsUndefined())
+                {
+                    return;
+                }
+
+                if (!first)
+                {
+                    json << ',';
+                }
+                first = false;
+
+                GetJson(name, var, json);
+            });
+
+            json << '}';
+            break;
+        }
+
+        case JType::ARR:
+        {
+            json << '[';
+
+            bool first = true;
+            var.ForEachItem([&](const JVar& var)
+            {
+                if (!first)
+                {
+                    json << ',';
+                }
+                first = false;
+
+                GetJson("", var, json);
+            });
+
+            json << ']';
+            break;
+        }
+    }
 }

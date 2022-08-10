@@ -370,5 +370,194 @@ public:
 
     virtual JField* GetField(size_t offset) = 0;
     virtual JField* GetField(const std::string&) = 0;
-    virtual void ForEach(const std::function<void(const std::string& name, const JField& field)>& field) const = 0;
+    virtual void ForEach(const std::function<void(const std::string& name, const JField& field)>& cb) const = 0;
+};
+
+class JVar : public JField
+{
+public:
+    JVar() : subtype(JType::VAR) {}
+
+    void Define() { this->undef = false; }
+
+    JType Type() const override
+    {
+        return JType::VAR;
+    }
+
+    JType Subtype() const
+    {
+        return this->subtype;
+    }
+
+    size_t Size() const
+    {
+        return JType::ARR == this->subtype ? this->fields.size() : 0;
+    }
+
+    void ForEachField(const std::function<void(const std::string& name, const JVar& var)>& cb) const
+    {
+        if (JType::OBJ != this->subtype)
+        {
+            return;
+        }
+
+        if (cb)
+        {
+            for (auto& pair : this->fields)
+            {
+                cb(pair.first, pair.second);
+            }
+        }
+    }
+
+    void ForEachItem(const std::function<void(const JVar& var)>& cb) const
+    {
+        if (JType::ARR != this->subtype)
+        {
+            return;
+        }
+
+        if (cb)
+        {
+            for (size_t i = 0; i < this->fields.size(); i++)
+            {
+                cb((*this)[i]);
+            }
+        }
+    }
+
+    bool HasField(const std::string& name) const
+    {
+        return this->fields.end() != this->fields.find(name);
+    }
+
+    JVar* GetField(const std::string& name)
+    {
+        if (!this->HasValue() || !this->HasField(name))
+        {
+            return nullptr;
+        }
+
+        return &(this->fields.find(name)->second);
+    }
+
+    const JVar* GetField(const std::string& name) const
+    {
+        if (!this->HasValue() || !this->HasField(name))
+        {
+            return nullptr;
+        }
+
+        return &(this->fields.find(name)->second);
+    }
+
+    JVar* GetNewField(const std::string& name)
+    {
+        if (JType::OBJ != this->subtype)
+        {
+            this->fields.clear();
+            this->subtype = JType::OBJ;
+        }
+
+        auto itr = this->fields.find(name);
+        if (this->fields.end() != itr)
+        {
+            return &itr->second;
+        }
+
+        return &(this->fields[name] = JVar());
+    }
+
+    JVar* GetNewItem()
+    {
+        if (JType::ARR != this->subtype)
+        {
+            this->fields.clear();
+            this->subtype = JType::ARR;
+        }
+
+        auto name = std::to_string(this->fields.size());
+        return &(this->fields[name] = JVar());
+    }
+
+    JVar& operator[](size_t index)
+    {
+        if (JType::ARR != this->subtype)
+        {
+            throw std::out_of_range("Is not an array");
+        }
+
+        if (index >= this->fields.size())
+        {
+            throw std::out_of_range("Index is out of range");
+        }
+
+        return this->fields.find(std::to_string(index))->second;
+    }
+
+    const JVar& operator[](size_t index) const
+    {
+        if (JType::ARR != this->subtype)
+        {
+            throw std::out_of_range("Is not an array");
+        }
+
+        if (index >= this->fields.size())
+        {
+            throw std::out_of_range("Index is out of range");
+        }
+
+        return this->fields.find(std::to_string(index))->second;
+    }
+
+    JVar& operator=(double value)
+    {
+        this->Str.clear();
+        this->fields.clear();
+
+        this->subtype = JType::FLT;
+        this->undef = false;
+        this->null  = false;
+        this->Flt   = value;
+
+        return *this;
+    }
+
+    JVar& operator=(bool value)
+    {
+        this->Str.clear();
+        this->fields.clear();
+
+        this->subtype = JType::BOOL;
+        this->undef = false;
+        this->null  = false;
+        this->Bool  = value;
+
+        return *this;
+    }
+
+    JVar& operator=(const std::string& value)
+    {
+        this->fields.clear();
+
+        this->subtype = JType::STR;
+        this->undef = false;
+        this->null  = false;
+        this->Str   = value;
+
+        return *this;
+    }
+
+    union
+    {
+        double  Flt;
+        bool    Bool;
+    };
+
+    std::string Str;
+
+protected:
+    JType subtype;
+    std::map<std::string, JVar> fields;
 };

@@ -11,7 +11,8 @@ enum class JType
     OBJ,
     ARR,
     DATE,
-    BOOL
+    BOOL,
+    VAR
 };
 
 static std::string to_string(JType type)
@@ -38,6 +39,9 @@ static std::string to_string(JType type)
 
         case JType::BOOL:
             return "JType::BOOL";
+
+        case JType::VAR:
+            return "JType::VAR";
 
         default:
             return "Unknown type";

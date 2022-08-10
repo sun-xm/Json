@@ -11,6 +11,7 @@ class JDate;
 class JField;
 class JObject;
 class JStr;
+class JVar;
 
 class JParser
 {
@@ -20,8 +21,8 @@ public:
 
 private:
     static void         GetVal(std::istream& json, const std::string& name, JField* field);
-    static void         GetArr(std::istream& json, const std::string& name, JArray* arr);
-    static void         GetObj(std::istream& json, JObject* obj);
+    static void         GetArr(std::istream& json, const std::string& name, JField* arr);
+    static void         GetObj(std::istream& json, JField* obj);
     static double       GetFlt(std::istream& json);
     static std::string  GetStr(std::istream& json);
     static int64_t      GetInt(std::istream& json);
@@ -37,4 +38,5 @@ private:
     static void GetJson(const JArray& arr, std::ostream& json);
     static void GetJson(const JDate& date, std::ostream& json);
     static void GetJson(const JStr& str, std::ostream& json);
+    static void GetJson(const JVar& var, std::ostream& json);
 };
