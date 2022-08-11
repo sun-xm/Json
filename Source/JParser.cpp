@@ -885,7 +885,33 @@ void JParser::GetJson(const JDate& date, ostream& json)
 
 void JParser::GetJson(const JStr& str, ostream& json)
 {
-    json << '\"' << (const string&)str << '\"';
+    json << '\"';
+
+    for (auto c : str.Value)
+    {
+        switch (c)
+        {
+            case '\\':
+            {
+                json << "\\\\";
+                break;
+            }
+
+            case '"':
+            {
+                json << "\\\"";
+                break;
+            }
+
+            default:
+            {
+                json << c;
+                break;
+            }
+        }
+    }
+
+    json << '\"';
 }
 
 void JParser::GetJson(const JVar& var, ostream& json)
@@ -894,7 +920,7 @@ void JParser::GetJson(const JVar& var, ostream& json)
     {
         case JType::BOOL:
         {
-            json << var.Bool ? "true" : "false";
+            json << (var.Bool ? "true" : "false");
             break;
         }
 
@@ -906,7 +932,33 @@ void JParser::GetJson(const JVar& var, ostream& json)
 
         case JType::STR:
         {
-            json << '\"' << var.Str << '\"';
+            json << '\"';
+
+            for (auto c : var.Str)
+            {
+                switch (c)
+                {
+                    case '\\':
+                    {
+                        json << "\\\\";
+                        break;
+                    }
+
+                    case '"':
+                    {
+                        json << "\\\"";
+                        break;
+                    }
+
+                    default:
+                    {
+                        json << c;
+                        break;
+                    }
+                }
+            }
+
+            json << '\"';
             break;
         }
 

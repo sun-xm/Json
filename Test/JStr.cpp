@@ -42,5 +42,21 @@ int main()
         return -1;
     }
 
+    jstr = JStr();
+    if (!jstr.Deserialize("\"a\\\\b\\\"c\""))
+    {
+        return -1;
+    }
+
+    if ("a\\b\"c" != jstr.Value)
+    {
+        return -1;
+    }
+
+    if ("\"a\\\\b\\\"c\"" != jstr.Serialize())
+    {
+        return -1;
+    }
+
     return 0;
 }

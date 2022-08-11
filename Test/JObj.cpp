@@ -4,12 +4,14 @@ struct JInner : public JObject
 {
     JInt num;
     JFlt flt;
+    JVar var;
 
     JOBJECT(JInner);
 };
 BEG_JFIELDS(JInner)
     JFIELD_KEY(num, "int"),
-    JFIELD(flt)
+    JFIELD(flt),
+    JFIELD(var)
 END_JFIELDS
 
 struct JOuter : public JObject
@@ -54,7 +56,7 @@ int main()
     }
 
     outer = JOuter();
-    if (!outer.Deserialize("{\"str\":\"str\", \"date\":\"1999-04-23T18:25:43.511Z\", \"arr\":[\"1\", \"2\"], \"inner\":{\"int\":123, \"flt\":1.23}}", e, w))
+    if (!outer.Deserialize("{\"str\":\"str\", \"date\":\"1999-04-23T18:25:43.511Z\", \"arr\":[\"1\", \"2\"], \"inner\":{\"int\":123, \"flt\":1.23, \"var\":true}}", e, w))
     {
         return -1;
     }
@@ -74,7 +76,7 @@ int main()
         return -1;
     }
 
-    if (123 != outer.inner.num || 1.23 != outer.inner.flt)
+    if (123 != outer.inner.num || 1.23 != outer.inner.flt || !outer.inner.var.Bool)
     {
         return -1;
     }

@@ -41,13 +41,13 @@ int main()
         return -1;
     }
 
-    auto one = jvar.GetField("one");
+    auto one = jvar.Field("one");
     if (JType::FLT != one->Subtype() || 1 != one->Flt)
     {
         return -1;
     }
 
-    auto two = jvar.GetField("two");
+    auto two = jvar.Field("two");
     if (JType::STR != two->Subtype() || "two" != two->Str)
     {
         return -1;
@@ -59,7 +59,7 @@ int main()
     }
 
     jvar = JVar();
-    if (!jvar.Deserialize("[123, \"123\"]", e, w) || JType::ARR != jvar.Subtype() || !jvar.HasValue() || 2 != jvar.Size())
+    if (!jvar.Deserialize("[123, \"123\", false, {\"var\":\"a\\\\b\\\"c\"}]", e, w) || JType::ARR != jvar.Subtype() || !jvar.HasValue() || 4 != jvar.Size())
     {
         return -1;
     }
@@ -74,7 +74,23 @@ int main()
         return -1;
     }
 
-    if ("[123,\"123\"]" != jvar.Serialize())
+    if (JType::BOOL != jvar[2].Subtype() || jvar[2].Bool)
+    {
+        return -1;
+    }
+
+    if (JType::OBJ != jvar[3].Subtype())
+    {
+        return -1;
+    }
+
+    auto var = jvar[3].Field("var");
+    if (JType::STR != var->Subtype() || "a\\b\"c" != var->Str)
+    {
+        return -1;
+    }
+
+    if ("[123,\"123\",false,{\"var\":\"a\\\\b\\\"c\"}]" != jvar.Serialize())
     {
         return -1;
     }

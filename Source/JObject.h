@@ -432,7 +432,7 @@ public:
         return this->fields.end() != this->fields.find(name);
     }
 
-    JVar* GetField(const std::string& name)
+    JVar* Field(const std::string& name)
     {
         if (!this->HasValue() || !this->HasField(name))
         {
@@ -442,7 +442,7 @@ public:
         return &(this->fields.find(name)->second);
     }
 
-    const JVar* GetField(const std::string& name) const
+    const JVar* Field(const std::string& name) const
     {
         if (!this->HasValue() || !this->HasField(name))
         {
