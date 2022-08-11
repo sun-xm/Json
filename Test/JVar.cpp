@@ -36,24 +36,25 @@ int main()
     }
 
     jvar = JVar();
-    if (!jvar.Deserialize("{\"one\":1,\"two\":\"two\"}", e, w) || JType::OBJ != jvar.Subtype() || !jvar.HasValue() || !jvar.HasField("one") || !jvar.HasField("two"))
+    if (!jvar.Deserialize("{\"one\":1,\"two\":\"two\"}", e, w) || JType::OBJ != jvar.Subtype() || !jvar.HasValue() || !jvar["one"].HasValue() || !jvar["two"].HasValue())
     {
         return -1;
     }
 
-    auto one = jvar.Field("one");
-    if (JType::FLT != one->Subtype() || 1 != one->Flt)
+    auto& one = jvar["one"];
+    if (JType::FLT != one.Subtype() || 1 != one.Flt)
     {
         return -1;
     }
 
-    auto two = jvar.Field("two");
-    if (JType::STR != two->Subtype() || "two" != two->Str)
+    auto& two = jvar["two"];
+    if (JType::STR != two.Subtype() || "two" != two.Str)
     {
         return -1;
     }
 
-    if ("{\"one\":1,\"two\":\"two\"}" != jvar.Serialize())
+    auto& three = jvar["three"];
+    if (JType::VAR != three.Subtype() || !three.IsUndefined() || three.IsNull() || three.HasValue())
     {
         return -1;
     }
@@ -84,13 +85,29 @@ int main()
         return -1;
     }
 
-    auto var = jvar[3].Field("var");
-    if (JType::STR != var->Subtype() || "a\\b\"c" != var->Str)
+    auto& var = jvar[3]["var"];
+    if (JType::STR != var.Subtype() || "a\\b\"c" != var.Str)
     {
         return -1;
     }
 
     if ("[123,\"123\",false,{\"var\":\"a\\\\b\\\"c\"}]" != jvar.Serialize())
+    {
+        return -1;
+    }
+
+    JUndVar juv;
+    if (!juv.Deserialize("123") || juv.HasValue())
+    {
+        return -1;
+    }
+
+    if (!juv.Deserialize("{\"n\":123}") || juv.HasValue())
+    {
+        return -1;
+    }
+
+    if (!juv.Deserialize("[1, 2, 3]") || juv.HasValue())
     {
         return -1;
     }

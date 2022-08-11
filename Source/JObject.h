@@ -373,6 +373,8 @@ public:
     virtual void ForEach(const std::function<void(const std::string& name, const JField& field)>& cb) const = 0;
 };
 
+class JUndVar;
+
 class JVar : public JField
 {
 public:
@@ -385,14 +387,48 @@ public:
         return JType::VAR;
     }
 
-    JType Subtype() const
+    virtual JType Subtype() const
     {
         return this->subtype;
     }
 
-    size_t Size() const
+    virtual size_t Size() const
     {
         return JType::ARR == this->subtype ? this->fields.size() : 0;
+    }
+
+    virtual bool HasField(const std::string& name) const
+    {
+        return this->fields.end() != this->fields.find(name);
+    }
+
+    virtual JVar* GetNewField(const std::string& name)
+    {
+        if (JType::OBJ != this->subtype)
+        {
+            this->fields.clear();
+            this->subtype = JType::OBJ;
+        }
+
+        auto itr = this->fields.find(name);
+        if (this->fields.end() != itr)
+        {
+            return &itr->second;
+        }
+
+        return &(this->fields[name] = JVar());
+    }
+
+    virtual JVar* GetNewItem()
+    {
+        if (JType::ARR != this->subtype)
+        {
+            this->fields.clear();
+            this->subtype = JType::ARR;
+        }
+
+        auto name = std::to_string(this->fields.size());
+        return &(this->fields[name] = JVar());
     }
 
     void ForEachField(const std::function<void(const std::string& name, const JVar& var)>& cb) const
@@ -427,63 +463,9 @@ public:
         }
     }
 
-    bool HasField(const std::string& name) const
-    {
-        return this->fields.end() != this->fields.find(name);
-    }
-
-    JVar* Field(const std::string& name)
-    {
-        if (!this->HasValue() || !this->HasField(name))
-        {
-            return nullptr;
-        }
-
-        return &(this->fields.find(name)->second);
-    }
-
-    const JVar* Field(const std::string& name) const
-    {
-        if (!this->HasValue() || !this->HasField(name))
-        {
-            return nullptr;
-        }
-
-        return &(this->fields.find(name)->second);
-    }
-
-    JVar* GetNewField(const std::string& name)
-    {
-        if (JType::OBJ != this->subtype)
-        {
-            this->fields.clear();
-            this->subtype = JType::OBJ;
-        }
-
-        auto itr = this->fields.find(name);
-        if (this->fields.end() != itr)
-        {
-            return &itr->second;
-        }
-
-        return &(this->fields[name] = JVar());
-    }
-
-    JVar* GetNewItem()
-    {
-        if (JType::ARR != this->subtype)
-        {
-            this->fields.clear();
-            this->subtype = JType::ARR;
-        }
-
-        auto name = std::to_string(this->fields.size());
-        return &(this->fields[name] = JVar());
-    }
-
     JVar& operator[](size_t index)
     {
-        if (JType::ARR != this->subtype)
+        if (JType::ARR != this->Subtype())
         {
             throw std::out_of_range("Is not an array");
         }
@@ -498,7 +480,7 @@ public:
 
     const JVar& operator[](size_t index) const
     {
-        if (JType::ARR != this->subtype)
+        if (JType::ARR != this->Subtype())
         {
             throw std::out_of_range("Is not an array");
         }
@@ -511,7 +493,37 @@ public:
         return this->fields.find(std::to_string(index))->second;
     }
 
-    JVar& operator=(double value)
+    JVar& operator[](const std::string& field)
+    {
+        if (JType::OBJ != this->Subtype())
+        {
+            throw std::runtime_error("Is not an object");
+        }
+
+        if (!this->HasValue() || !this->HasField(field))
+        {
+            return (JVar&)*UndVar;
+        }
+
+        return this->fields.find(field)->second;
+    }
+
+    const JVar& operator[](const std::string& field) const
+    {
+        if (JType::OBJ != this->Subtype())
+        {
+            throw std::runtime_error("Is not an object");
+        }
+
+        if (!this->HasValue() || !this->HasField(field))
+        {
+            return (JVar&)*UndVar;
+        }
+
+        return this->fields.find(field)->second;
+    }
+
+    virtual JVar& operator=(double value)
     {
         this->Str.clear();
         this->fields.clear();
@@ -524,7 +536,7 @@ public:
         return *this;
     }
 
-    JVar& operator=(bool value)
+    virtual JVar& operator=(bool value)
     {
         this->Str.clear();
         this->fields.clear();
@@ -537,7 +549,7 @@ public:
         return *this;
     }
 
-    JVar& operator=(const std::string& value)
+    virtual JVar& operator=(const std::string& value)
     {
         this->fields.clear();
 
@@ -560,4 +572,65 @@ public:
 protected:
     JType subtype;
     std::map<std::string, JVar> fields;
+
+    static JUndVar* UndVar;
+};
+
+class JUndVar : public JVar
+{
+public:
+    bool IsUndefined() const override
+    {
+        return true;
+    }
+
+    bool IsNull() const override
+    {
+        return false;
+    }
+
+    bool HasField(const std::string&) const override
+    {
+        return false;
+    }
+
+    JType Subtype() const override
+    {
+        return JType::VAR;
+    }
+
+    size_t Size() const override
+    {
+        return 0;
+    }
+
+    JVar* GetNewField(const std::string& name) override
+    {
+        return nullptr;
+    }
+
+    JVar* GetNewItem() override
+    {
+        return nullptr;
+    }
+
+    JVar& operator=(double value) override
+    {
+        return *this;
+    }
+
+    JVar& operator=(bool value) override
+    {
+        return *this;
+    }
+
+    JVar& operator=(const std::string& value) override
+    {
+        return *this;
+    }
+
+    std::nullptr_t operator=(std::nullptr_t) override
+    {
+        return nullptr;
+    }
 };
