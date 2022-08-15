@@ -18,7 +18,7 @@ struct Person : public JObject
     JStr    name;
     JDate   birth;
     JBool   married;
-    JFlt    weight;
+    JNum    weight;
     Address address;
 
     JArr<JStr> skills;

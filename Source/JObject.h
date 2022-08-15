@@ -334,10 +334,10 @@ public:
     JVALUE(JInt, int64_t, INT);
 };
 
-class JFlt : public JValue<double>
+class JNum : public JValue<double>
 {
 public:
-    JVALUE(JFlt, double, FLT);
+    JVALUE(JNum, double, NUM);
 };
 
 class JStr : public JValue<std::string>
@@ -528,7 +528,7 @@ public:
         this->Str.clear();
         this->fields.clear();
 
-        this->subtype = JType::FLT;
+        this->subtype = JType::NUM;
         this->undef = false;
         this->null  = false;
         this->Flt   = value;

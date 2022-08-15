@@ -217,9 +217,9 @@ void JParser::GetVal(istream& json, const string& name, JField* field)
                                     break;
                                 }
 
-                                case JType::FLT:
+                                case JType::NUM:
                                 {
-                                    *(JFlt*)field = GetFlt(json);
+                                    *(JNum*)field = GetFlt(json);
                                     break;
                                 }
 
@@ -231,7 +231,7 @@ void JParser::GetVal(istream& json, const string& name, JField* field)
 
                                 default:
                                 {
-                                    throw TypeMismatch(name, field->Type(), JType::FLT);
+                                    throw TypeMismatch(name, field->Type(), JType::NUM);
                                 }
                             }
                         }
@@ -791,8 +791,8 @@ void JParser::GetJson(const string& name, const JField& field, ostream& json)
         json << (JInt&)field;
         break;
 
-    case JType::FLT:
-        json << setprecision(numeric_limits<double>::digits10 + 1) << (JFlt&)field;
+    case JType::NUM:
+        json << setprecision(numeric_limits<double>::digits10 + 1) << (JNum&)field;
         break;
 
     case JType::BOOL:
@@ -927,7 +927,7 @@ void JParser::GetJson(const JVar& var, ostream& json)
             break;
         }
 
-        case JType::FLT:
+        case JType::NUM:
         {
             json << setprecision(numeric_limits<double>::digits10 + 1) << var.Flt;
             break;

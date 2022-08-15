@@ -3,7 +3,7 @@
 struct JInner : public JObject
 {
     JInt num;
-    JFlt flt;
+    JNum flt;
     JVar var;
 
     JOBJECT(JInner);
