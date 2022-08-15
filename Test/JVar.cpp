@@ -1,5 +1,27 @@
 #include "JObject.h"
 
+struct JInner : public JObject
+{
+    JStr str;
+    JOBJECT(JInner);
+};
+BEG_JFIELDS(JInner)
+    JFIELD(str)
+END_JFIELDS
+
+struct JOuter : public JObject
+{
+    JNum num;
+    JArr<JInt> ints;
+    JInner inner;
+    JOBJECT (JOuter);
+};
+BEG_JFIELDS(JOuter)
+    JFIELD(num),
+    JFIELD(ints),
+    JFIELD(inner)
+END_JFIELDS
+
 int main()
 {
     std::string e;
@@ -132,6 +154,40 @@ int main()
     }
 
     if (!jnums.HasValue() || 3 != jnums().size() || 1.0 != jnums[0] || 2.0 != jnums[1] || 3.0 != jnums[2])
+    {
+        return -1;
+    }
+
+    jvar = JVar();
+    if (!jvar.Deserialize("{\"num\":1.0, \"ints\":[1, 2, null], \"inner\":{\"str\":\"123\"}}", e, w))
+    {
+        return -1;
+    }
+
+    JOuter jouter;
+    if (!jvar.ToObj(jouter))
+    {
+        return -1;
+    }
+
+    if (!jouter.HasValue() || !jouter.num.HasValue() || !jouter.ints.HasValue() || !jouter.inner.HasValue())
+    {
+        return -1;
+    }
+
+    if (1.0 != jouter.num)
+    {
+        return -1;
+    }
+
+    auto& ints = jouter.ints;
+    if (3 != ints().size() || 1 != ints[0] || 2 != ints[1] || !ints[2].IsNull())
+    {
+        return -1;
+    }
+
+    auto& inner = jouter.inner;
+    if (!inner.str.HasValue() || "123" != inner.str())
     {
         return -1;
     }

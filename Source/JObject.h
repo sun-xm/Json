@@ -206,20 +206,7 @@ public:
         return JType::ARR;
     }
 
-    virtual void Clear()
-    {
-        this->undef = true;
-        this->null  = false;
-    }
-
     void Define() { this->undef = false; }
-
-    std::nullptr_t operator=(std::nullptr_t) override
-    {
-        this->undef = false;
-        this->null  = true;
-        return nullptr;
-    }
 };
 
 template<typename T>
@@ -254,12 +241,6 @@ public:
                 cb((const T&)field);
             });
         }
-    }
-
-    void Clear() const
-    {
-        this->Value.clear();
-        JArray::Clear();
     }
 
     T& operator[](size_t index)
@@ -484,8 +465,6 @@ public:
 
     bool ToArr(JArray& arr, std::string& err) const
     {
-        arr.Clear();
-
         if (this->undef)
         {
             return true;
@@ -493,7 +472,7 @@ public:
 
         if (this->null)
         {
-            arr = nullptr;
+            (JField&)arr = nullptr;
             return true;
         }
 
@@ -507,7 +486,7 @@ public:
 
                 if (var.IsNull())
                 {
-                    item = nullptr;
+                    *item = nullptr;
                     return;
                 }
 
@@ -570,6 +549,107 @@ public:
     {
         std::string e;
         return this->ToArr(arr, e);
+    }
+
+    bool ToObj(JObject& obj, std::string& err) const
+    {
+        if (this->undef)
+        {
+            return true;
+        }
+
+        if (this->null)
+        {
+            (JField&)obj = nullptr;
+            return true;
+        }
+
+        obj.Define();
+
+        try
+        {
+            this->ForEachField([&obj, &err](const std::string& name, const JVar& var)
+            {
+                if (var.IsUndefined())
+                {
+                    return;
+                }
+
+                auto field = obj.GetField(name);
+                if (!field)
+                {
+                    return;
+                }
+
+                if (var.IsNull())
+                {
+                    *field = nullptr;
+                    return;
+                }
+
+                if (field->Type() == var.Subtype())
+                {
+                    switch (field->Type())
+                    {
+                        case JType::INT:
+                        {
+                            *(JInt*)field = var.Int;
+                            break;
+                        }
+
+                        case JType::NUM:
+                        {
+                            *(JNum*)field = var.Num;
+                            break;
+                        }
+
+                        case JType::STR:
+                        {
+                            *(JStr*)field = var.Str;
+                            break;
+                        }
+
+                        case JType::ARR:
+                        {
+                            if (!var.ToArr(*(JArray*)field, err))
+                            {
+                                throw std::runtime_error(err);
+                            }
+                            break;
+                        }
+
+                        case JType::OBJ:
+                        {
+                            if (!var.ToObj(*(JObject*)field, err))
+                            {
+                                throw std::runtime_error(err);
+                            }
+                            break;
+                        }
+                    }
+                }
+                else if (JType::NUM == field->Type() && JType::INT == var.Subtype())
+                {
+                    *(JNum*)field = (double)var.Int;
+                }
+                else
+                {
+                    throw std::runtime_error("Type mismatch: " + name + ". Expecting: " + to_string(field->Type()) + ". Actual: " + to_string(var.Subtype()));
+                }
+            });
+        } catch (const std::exception& e)
+        {
+            err = e.what();
+            return false;
+        }
+
+        return true;
+    }
+
+    bool ToObj(JObject& obj) const
+    {
+        std::string err;
+        return this->ToObj(obj, err);
     }
 
     JVar& operator[](size_t index)
