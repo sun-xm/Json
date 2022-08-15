@@ -206,7 +206,20 @@ public:
         return JType::ARR;
     }
 
+    virtual void Clear()
+    {
+        this->undef = true;
+        this->null  = false;
+    }
+
     void Define() { this->undef = false; }
+
+    std::nullptr_t operator=(std::nullptr_t) override
+    {
+        this->undef = false;
+        this->null  = true;
+        return nullptr;
+    }
 };
 
 template<typename T>
@@ -241,6 +254,12 @@ public:
                 cb((const T&)field);
             });
         }
+    }
+
+    void Clear() const
+    {
+        this->Value.clear();
+        JArray::Clear();
     }
 
     T& operator[](size_t index)
@@ -461,6 +480,96 @@ public:
                 cb((*this)[i]);
             }
         }
+    }
+
+    bool ToArr(JArray& arr, std::string& err) const
+    {
+        arr.Clear();
+
+        if (this->undef)
+        {
+            return true;
+        }
+
+        if (this->null)
+        {
+            arr = nullptr;
+            return true;
+        }
+
+        arr.Define();
+
+        try
+        {
+            this->ForEachItem([&arr, &err](const JVar& var)
+            {
+                auto item = arr.GetNew();
+
+                if (var.IsNull())
+                {
+                    item = nullptr;
+                    return;
+                }
+
+                if (item->Type() == var.Subtype())
+                {
+                    switch (item->Type())
+                    {
+                        case JType::INT:
+                        {
+                            *(JInt*)item = var.Int;
+                            break;
+                        }
+
+                        case JType::NUM:
+                        {
+                            *(JNum*)item = var.Num;
+                            break;
+                        }
+
+                        case JType::STR:
+                        {
+                            *(JStr*)item = var.Str;
+                            break;
+                        }
+
+                        case JType::ARR:
+                        {
+                            if (!var.ToArr(*(JArray*)item, err))
+                            {
+                                throw std::runtime_error(err);
+                            }
+                            break;
+                        }
+
+                        case JType::OBJ:
+                        {
+                            break;
+                        }
+                    }
+                }
+                else if (JType::NUM == item->Type() && JType::INT == var.Subtype())
+                {
+                    *(JNum*)item = (double)var.Int;
+                }
+                else
+                {
+                    throw std::runtime_error("Type mismatch. Expecting: " + to_string(item->Type()) + ". Actual: " + to_string(var.Subtype()));
+                }
+            });
+        } catch (const std::exception& e)
+        {
+            err = e.what();
+            return false;
+        }
+
+        return true;
+    }
+
+    bool ToArr(JArray& arr) const
+    {
+        std::string e;
+        return this->ToArr(arr, e);
     }
 
     JVar& operator[](size_t index)

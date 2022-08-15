@@ -108,6 +108,34 @@ int main()
         return -1;
     }
 
+    jvar = JVar();
+    if (!jvar.Deserialize("[1, 2, 3]"))
+    {
+        return -1;
+    }
+
+    JArr<JInt> jints;
+    if (!jvar.ToArr(jints, e))
+    {
+        return -1;
+    }
+
+    if (!jints.HasValue() || 3 != jints().size() || 1 != jints[0] || 2 != jints[1] || 3 != jints[2])
+    {
+        return -1;
+    }
+
+    JArr<JNum> jnums;
+    if (!jvar.ToArr(jnums, e))
+    {
+        return -1;
+    }
+
+    if (!jnums.HasValue() || 3 != jnums().size() || 1.0 != jnums[0] || 2.0 != jnums[1] || 3.0 != jnums[2])
+    {
+        return -1;
+    }
+
     JUndVar juv;
     if (!juv.Deserialize("123") || juv.HasValue())
     {
