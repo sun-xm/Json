@@ -523,6 +523,19 @@ public:
         return this->fields.find(field)->second;
     }
 
+    virtual JVar& operator=(int64_t value)
+    {
+        this->Str.clear();
+        this->fields.clear();
+
+        this->subtype = JType::INT;
+        this->undef = false;
+        this->null  = false;
+        this->Int   = value;
+
+        return *this;
+    }
+
     virtual JVar& operator=(double value)
     {
         this->Str.clear();
@@ -531,7 +544,7 @@ public:
         this->subtype = JType::NUM;
         this->undef = false;
         this->null  = false;
-        this->Flt   = value;
+        this->Num   = value;
 
         return *this;
     }
@@ -563,7 +576,8 @@ public:
 
     union
     {
-        double  Flt;
+        int64_t Int;
+        double  Num;
         bool    Bool;
     };
 

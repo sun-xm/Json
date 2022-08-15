@@ -24,14 +24,18 @@ private:
     static void         GetArr(std::istream& json, const std::string& name, JField* arr);
     static void         GetObj(std::istream& json, JField* obj);
     static double       GetFlt(std::istream& json);
+    static double       GetFlt(const std::string& num);
     static std::string  GetStr(std::istream& json);
+    static std::string  GetNum(std::istream& json);
     static int64_t      GetInt(std::istream& json);
+    static int64_t      GetInt(const std::string& num);
     static int64_t      GetInt(const std::string& json, std::string::size_type& off);
     static std::string  GetName(std::istream& json);
     static time_t       GetDate(std::istream& json);
     static bool         GetBool(std::istream& json);
     static uint64_t     GetUint(std::istream& json);
     static uint64_t     GetUint(const std::string& json, std::string::size_type& off);
+    static bool         IsFloat(const std::string& num);
 
     static void GetJson(const std::string& name, const JField& field, std::ostream& json);
     static void GetJson(const JObject& obj, std::ostream& json);

@@ -24,7 +24,19 @@ int main()
     }
 
     jvar = JVar();
-    if (!jvar.Deserialize("123") || JType::NUM != jvar.Subtype() || !jvar.HasValue() || 123 != jvar.Flt)
+    if (!jvar.Deserialize("-123") || JType::INT != jvar.Subtype() || !jvar.HasValue() || -123 != jvar.Int)
+    {
+        return -1;
+    }
+
+    jvar = JVar();
+    if (!jvar.Deserialize("0x123") || JType::INT != jvar.Subtype() || !jvar.HasValue() || 0x123 != jvar.Int)
+    {
+        return -1;
+    }
+
+    jvar = JVar();
+    if (!jvar.Deserialize("1.23") || JType::NUM != jvar.Subtype() || !jvar.HasValue() || 1.23 != jvar.Num)
     {
         return -1;
     }
@@ -42,7 +54,7 @@ int main()
     }
 
     auto& one = jvar["one"];
-    if (JType::NUM != one.Subtype() || 1 != one.Flt)
+    if (JType::INT != one.Subtype() || 1 != one.Int)
     {
         return -1;
     }
@@ -60,12 +72,12 @@ int main()
     }
 
     jvar = JVar();
-    if (!jvar.Deserialize("[123, \"123\", false, {\"var\":\"a\\\\b\\\"c\"}]", e, w) || JType::ARR != jvar.Subtype() || !jvar.HasValue() || 4 != jvar.Size())
+    if (!jvar.Deserialize("[123., \"123\", false, {\"var\":\"a\\\\b\\\"c\"}]", e, w) || JType::ARR != jvar.Subtype() || !jvar.HasValue() || 4 != jvar.Size())
     {
         return -1;
     }
 
-    if (JType::NUM != jvar[0].Subtype() || 123 != jvar[0].Flt)
+    if (JType::NUM != jvar[0].Subtype() || 123.0 != jvar[0].Num)
     {
         return -1;
     }

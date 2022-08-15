@@ -225,7 +225,15 @@ void JParser::GetVal(istream& json, const string& name, JField* field)
 
                                 case JType::VAR:
                                 {
-                                    *(JVar*)field = GetFlt(json);
+                                    auto num = GetNum(json);
+                                    if (IsFloat(num))
+                                    {
+                                        *(JVar*)field = GetFlt(num);
+                                    }
+                                    else
+                                    {
+                                        *(JVar*)field = GetInt(num);
+                                    }
                                     break;
                                 }
 
@@ -384,6 +392,13 @@ double JParser::GetFlt(istream& json)
     return v;
 }
 
+double JParser::GetFlt(const string& num)
+{
+    double v;
+    istringstream(num) >> v;
+    return v;
+}
+
 string JParser::GetStr(istream& json)
 {
     ostringstream oss;
@@ -484,6 +499,65 @@ string JParser::GetStr(istream& json)
     return oss.str();
 }
 
+string JParser::GetNum(istream& json)
+{
+    ostringstream oss;
+
+    bool digit = false;
+    bool sign  = false;
+
+    auto c = GetChar(json);
+    auto p = json.peek();
+
+    if ('0' == c && 'x' == p)
+    {
+        oss << c << GetChar(json);
+
+        c = GetChar(json);
+
+        digit = true;
+        sign  = true;
+    }
+
+    do
+    {
+        if ('+' == c || '-' == c)
+        {
+            if (sign)
+            {
+                throw Unexpected();
+            }
+
+            sign = true;
+        }
+
+        if ('.' == c)
+        {
+            if (digit)
+            {
+                throw Unexpected();
+            }
+
+            digit = true;
+        }
+
+        oss << c;
+
+    } while ([&json, &c]
+    {
+        auto p = json.peek();
+        if ('.' == p || (p >= '0' && p <= '9'))
+        {
+            c = GetChar(json);
+            return true;
+        }
+
+        return false;
+    }());
+
+    return oss.str();
+}
+
 int64_t JParser::GetInt(istream& json)
 {
     int64_t v;
@@ -507,6 +581,22 @@ int64_t JParser::GetInt(istream& json)
         }
 
         json >> v;
+    }
+
+    return v;
+}
+
+int64_t JParser::GetInt(const string& num)
+{
+    int64_t v;
+
+    if (num.length() > 2 && '0' == num[0] && 'x' == num[1])
+    {
+        istringstream(num.substr(2)) >> hex >> v;
+    }
+    else
+    {
+        istringstream(num) >> v;
     }
 
     return v;
@@ -767,6 +857,11 @@ bool JParser::GetBool(istream& json)
     throw Unexpected();
 }
 
+bool JParser::IsFloat(const string& num)
+{
+    return string::npos != num.find('.');
+}
+
 void JParser::GetJson(const string& name, const JField& field, ostream& json)
 {
     if (field.IsUndefined())
@@ -929,7 +1024,7 @@ void JParser::GetJson(const JVar& var, ostream& json)
 
         case JType::NUM:
         {
-            json << setprecision(numeric_limits<double>::digits10 + 1) << var.Flt;
+            json << setprecision(numeric_limits<double>::digits10 + 1) << var.Num;
             break;
         }
 
