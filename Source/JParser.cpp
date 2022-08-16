@@ -394,8 +394,14 @@ double JParser::GetFlt(istream& json)
 
 double JParser::GetFlt(const string& num)
 {
-    double v;
-    istringstream(num) >> v;
+    char* end;
+    double v = strtod(num.c_str(), &end);
+
+    if (num.c_str() == end)
+    {
+        throw runtime_error("Failed to parse double");
+    }
+
     return v;
 }
 
@@ -506,6 +512,7 @@ string JParser::GetNum(istream& json)
     bool digit = false;
     bool sign  = false;
     bool hex   = false;
+    bool exp   = false;
 
     auto c = GetChar(json);
     auto p = json.peek();
@@ -536,6 +543,11 @@ string JParser::GetNum(istream& json)
         return false;
     };
 
+    if ('+' != c && '-' != c && '.' != c && !isnum(c))
+    {
+        throw Unexpected();
+    }
+
     do
     {
         if ('+' == c || '-' == c)
@@ -547,6 +559,16 @@ string JParser::GetNum(istream& json)
 
             sign = true;
         }
+        else if ('E' == c || 'e' == c)
+        {
+            if (exp)
+            {
+                throw Unexpected();
+            }
+
+            exp  = true;
+            sign = false;
+        }
         else if ('.' == c)
         {
             if (digit)
@@ -556,10 +578,6 @@ string JParser::GetNum(istream& json)
 
             digit = true;
         }
-        else if(!isnum(c))
-        {
-            throw Unexpected();
-        }
 
         oss << c;
 
@@ -567,7 +585,7 @@ string JParser::GetNum(istream& json)
     {
         auto p = json.peek();
 
-        if ('.' == p || isnum(p))
+        if ('.' == p || '+' == p || '-' == p || 'e' == p || 'E' == p || isnum(p))
         {
             c = GetChar(json);
             return true;
@@ -887,7 +905,20 @@ bool JParser::GetBool(istream& json)
 
 bool JParser::IsFloat(const string& num)
 {
-    return string::npos != num.find('.');
+    if (num.length() >= 2 && '0' == num[0] && ('x' == num[1] || 'X' == num[1]))
+    {
+        return false;
+    }
+
+    for (auto c : num)
+    {
+        if ('.' == c || 'e' == c || 'E' == c)
+        {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 void JParser::GetJson(const string& name, const JField& field, ostream& json)

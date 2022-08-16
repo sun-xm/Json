@@ -24,11 +24,9 @@ END_JFIELDS
 
 int main()
 {
-    std::string e;
-    size_t w;
     JVar jvar;
 
-    if (!jvar.Deserialize("", e, w) || !jvar.IsUndefined() || jvar.IsNull() || jvar.HasValue())
+    if (!jvar.Deserialize("") || !jvar.IsUndefined() || jvar.IsNull() || jvar.HasValue())
     {
         return -1;
     }
@@ -58,7 +56,19 @@ int main()
     }
 
     jvar = JVar();
+    if (jvar.Deserialize("1AB"))
+    {
+        return -1;
+    }
+
+    jvar = JVar();
     if (!jvar.Deserialize("1.23") || JType::NUM != jvar.Subtype() || !jvar.HasValue() || 1.23 != jvar.Num)
+    {
+        return -1;
+    }
+
+    jvar = JVar();
+    if (!jvar.Deserialize("123e-2") || JType::NUM != jvar.Subtype() || !jvar.HasValue() || 1.23 != jvar.Num)
     {
         return -1;
     }
@@ -70,7 +80,7 @@ int main()
     }
 
     jvar = JVar();
-    if (!jvar.Deserialize("{\"one\":1,\"two\":\"two\"}", e, w) || JType::OBJ != jvar.Subtype() || !jvar.HasValue() || !jvar["one"].HasValue() || !jvar["two"].HasValue())
+    if (!jvar.Deserialize("{\"one\":1,\"two\":\"two\"}") || JType::OBJ != jvar.Subtype() || !jvar.HasValue() || !jvar["one"].HasValue() || !jvar["two"].HasValue())
     {
         return -1;
     }
@@ -94,7 +104,7 @@ int main()
     }
 
     jvar = JVar();
-    if (!jvar.Deserialize("[123., \"123\", false, {\"var\":\"a\\\\b\\\"c\"}]", e, w) || JType::ARR != jvar.Subtype() || !jvar.HasValue() || 4 != jvar.Size())
+    if (!jvar.Deserialize("[123., \"123\", false, {\"var\":\"a\\\\b\\\"c\"}]") || JType::ARR != jvar.Subtype() || !jvar.HasValue() || 4 != jvar.Size())
     {
         return -1;
     }
@@ -137,7 +147,7 @@ int main()
     }
 
     JArr<JInt> jints;
-    if (!jvar.ToArr(jints, e))
+    if (!jvar.ToArr(jints))
     {
         return -1;
     }
@@ -148,7 +158,7 @@ int main()
     }
 
     JArr<JNum> jnums;
-    if (!jvar.ToArr(jnums, e))
+    if (!jvar.ToArr(jnums))
     {
         return -1;
     }
@@ -159,7 +169,7 @@ int main()
     }
 
     jvar = JVar();
-    if (!jvar.Deserialize("{\"num\":1.0, \"ints\":[1, 2, null], \"inner\":{\"str\":\"123\"}}", e, w))
+    if (!jvar.Deserialize("{\"num\":1.0, \"ints\":[1, 2, null], \"inner\":{\"str\":\"123\"}}"))
     {
         return -1;
     }
