@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <iomanip>
 #include <limits>
+#include <sstream>
 
 #define IS_WHITESPACE(c) (' ' == c || '\r' == c || '\n' == c || '\t' == c)
 

@@ -17,9 +17,6 @@ const string Numbers("+-.0123456789");
 
 wstring_convert<codecvt_utf8<wchar_t>> utf8;
 
-JUndVar und;
-JUndVar* JVar::UndVar = &und;
-
 inline runtime_error TypeMismatch(const string& name, JType expected, JType actual)
 {
     return runtime_error(("Type mismatch: " + name + ". Expecting: " + to_string(expected) + ". Actual: " + to_string(actual)).c_str());

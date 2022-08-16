@@ -1,11 +1,9 @@
 #pragma once
 
-#include "JParser.h"
+#include "JType.h"
 #include <cstdint>
 #include <functional>
-#include <list>
 #include <map>
-#include <sstream>
 #include <string>
 #include <vector>
 
@@ -118,77 +116,12 @@ public:
         return nullptr;
     }
 
-    std::string Serialize() const
-    {
-        std::ostringstream json;
-        this->Serialize(json);
-        return json.str();
-    }
-
-    bool Serialize(std::ostream& json) const
-    {
-        JParser::Serialize(json, *this);
-        return !!json;
-    }
-
-    bool Deserialize(const std::string& json)
-    {
-        auto stream = std::istringstream(json);
-
-        try
-        {
-            JParser::Deserialize(stream, *this);
-            return true;
-
-        } catch(const std::exception&)
-        {
-            return false;
-        }
-    }
-
-    bool Deserialize(std::istream& json)
-    {
-        try
-        {
-            JParser::Deserialize(json, *this);
-            return true;
-
-        } catch(const std::exception&)
-        {
-            return false;
-        }
-    }
-
-    bool Deserialize(const std::string& json, std::string& error, size_t& where)
-    {
-        auto stream = std::istringstream(json);
-
-        try
-        {
-            JParser::Deserialize(stream, *this);
-            return true;
-
-        } catch(const std::exception& e)
-        {
-            where = stream ? (size_t)stream.tellg() : json.length();
-            error = e.what();
-            return false;
-        }
-    }
-
-    bool Deserialize(std::istream& json, std::string& error)
-    {
-        try
-        {
-            JParser::Deserialize(json, *this);
-            return true;
-
-        } catch(const std::exception& e)
-        {
-            error = e.what();
-            return false;
-        }
-    }
+    std::string Serialize() const;
+    bool Serialize(std::ostream& json) const;
+    bool Deserialize(const std::string& json);
+    bool Deserialize(std::istream& json);
+    bool Deserialize(const std::string& json, std::string& error, size_t& where);
+    bool Deserialize(std::istream& json, std::string& error);
 
 protected:
     bool undef;
@@ -402,35 +335,6 @@ public:
         return this->fields.end() != this->fields.find(name);
     }
 
-    virtual JVar* GetNewField(const std::string& name)
-    {
-        if (JType::OBJ != this->subtype)
-        {
-            this->fields.clear();
-            this->subtype = JType::OBJ;
-        }
-
-        auto itr = this->fields.find(name);
-        if (this->fields.end() != itr)
-        {
-            return &itr->second;
-        }
-
-        return &(this->fields[name] = JVar());
-    }
-
-    virtual JVar* GetNewItem()
-    {
-        if (JType::ARR != this->subtype)
-        {
-            this->fields.clear();
-            this->subtype = JType::ARR;
-        }
-
-        auto name = std::to_string(this->fields.size());
-        return &(this->fields[name] = JVar());
-    }
-
     void ForEachField(const std::function<void(const std::string& name, const JVar& var)>& cb) const
     {
         if (JType::OBJ == this->subtype && cb)
@@ -453,199 +357,16 @@ public:
         }
     }
 
-    bool ToArr(JArray& arr, std::string& err) const
-    {
-        if (this->undef)
-        {
-            return true;
-        }
+    virtual JVar* GetNewItem();
+    virtual JVar* GetNewField(const std::string& name);
 
-        if (this->null)
-        {
-            (JField&)arr = nullptr;
-            return true;
-        }
-
-        if (JType::ARR != this->subtype)
-        {
-            err = "This is not an array";
-            return false;
-        }
-
-        arr.Define();
-
-        try
-        {
-            this->ForEachItem([&arr, &err](const JVar& var)
-            {
-                auto item = arr.GetNew();
-
-                if (var.IsNull())
-                {
-                    *item = nullptr;
-                    return;
-                }
-
-                if (item->Type() == var.Subtype())
-                {
-                    switch (item->Type())
-                    {
-                        case JType::INT:
-                        {
-                            *(JInt*)item = var.Int;
-                            break;
-                        }
-
-                        case JType::NUM:
-                        {
-                            *(JNum*)item = var.Num;
-                            break;
-                        }
-
-                        case JType::STR:
-                        {
-                            *(JStr*)item = var.Str;
-                            break;
-                        }
-
-                        case JType::ARR:
-                        {
-                            if (!var.ToArr(*(JArray*)item, err))
-                            {
-                                throw std::runtime_error(err);
-                            }
-                            break;
-                        }
-
-                        case JType::OBJ:
-                        {
-                            break;
-                        }
-                    }
-                }
-                else if (JType::NUM == item->Type() && JType::INT == var.Subtype())
-                {
-                    *(JNum*)item = (double)var.Int;
-                }
-                else
-                {
-                    throw std::runtime_error("Type mismatch. Expecting: " + to_string(item->Type()) + ". Actual: " + to_string(var.Subtype()));
-                }
-            });
-        } catch (const std::exception& e)
-        {
-            err = e.what();
-            return false;
-        }
-
-        return true;
-    }
+    bool ToArr(JArray& arr, std::string& err) const;
+    bool ToObj(JObject& obj, std::string& err) const;
 
     bool ToArr(JArray& arr) const
     {
         std::string e;
         return this->ToArr(arr, e);
-    }
-
-    bool ToObj(JObject& obj, std::string& err) const
-    {
-        if (this->undef)
-        {
-            return true;
-        }
-
-        if (this->null)
-        {
-            (JField&)obj = nullptr;
-            return true;
-        }
-
-        if (JType::OBJ != this->subtype)
-        {
-            err = "This is not an object";
-            return false;
-        }
-
-        obj.Define();
-
-        try
-        {
-            this->ForEachField([&obj, &err](const std::string& name, const JVar& var)
-            {
-                if (var.IsUndefined())
-                {
-                    return;
-                }
-
-                auto field = obj.GetField(name);
-                if (!field)
-                {
-                    return;
-                }
-
-                if (var.IsNull())
-                {
-                    *field = nullptr;
-                    return;
-                }
-
-                if (field->Type() == var.Subtype())
-                {
-                    switch (field->Type())
-                    {
-                        case JType::INT:
-                        {
-                            *(JInt*)field = var.Int;
-                            break;
-                        }
-
-                        case JType::NUM:
-                        {
-                            *(JNum*)field = var.Num;
-                            break;
-                        }
-
-                        case JType::STR:
-                        {
-                            *(JStr*)field = var.Str;
-                            break;
-                        }
-
-                        case JType::ARR:
-                        {
-                            if (!var.ToArr(*(JArray*)field, err))
-                            {
-                                throw std::runtime_error(err);
-                            }
-                            break;
-                        }
-
-                        case JType::OBJ:
-                        {
-                            if (!var.ToObj(*(JObject*)field, err))
-                            {
-                                throw std::runtime_error(err);
-                            }
-                            break;
-                        }
-                    }
-                }
-                else if (JType::NUM == field->Type() && JType::INT == var.Subtype())
-                {
-                    *(JNum*)field = (double)var.Int;
-                }
-                else
-                {
-                    throw std::runtime_error("Type mismatch: " + name + ". Expecting: " + to_string(field->Type()) + ". Actual: " + to_string(var.Subtype()));
-                }
-            });
-        } catch (const std::exception& e)
-        {
-            err = e.what();
-            return false;
-        }
-
-        return true;
     }
 
     bool ToObj(JObject& obj) const
@@ -654,65 +375,10 @@ public:
         return this->ToObj(obj, err);
     }
 
-    JVar& operator[](size_t index)
-    {
-        if (JType::ARR != this->Subtype())
-        {
-            throw std::out_of_range("Is not an array");
-        }
-
-        if (index >= this->fields.size())
-        {
-            throw std::out_of_range("Index is out of range");
-        }
-
-        return this->fields.find(std::to_string(index))->second;
-    }
-
-    const JVar& operator[](size_t index) const
-    {
-        if (JType::ARR != this->Subtype())
-        {
-            throw std::out_of_range("Is not an array");
-        }
-
-        if (index >= this->fields.size())
-        {
-            throw std::out_of_range("Index is out of range");
-        }
-
-        return this->fields.find(std::to_string(index))->second;
-    }
-
-    JVar& operator[](const std::string& field)
-    {
-        if (JType::OBJ != this->Subtype())
-        {
-            throw std::runtime_error("Is not an object");
-        }
-
-        if (!this->HasValue() || !this->HasField(field))
-        {
-            return (JVar&)*UndVar;
-        }
-
-        return this->fields.find(field)->second;
-    }
-
-    const JVar& operator[](const std::string& field) const
-    {
-        if (JType::OBJ != this->Subtype())
-        {
-            throw std::runtime_error("Is not an object");
-        }
-
-        if (!this->HasValue() || !this->HasField(field))
-        {
-            return (JVar&)*UndVar;
-        }
-
-        return this->fields.find(field)->second;
-    }
+    JVar& operator[](size_t index);
+    const JVar& operator[](size_t index) const;
+    JVar& operator[](const std::string& field);
+    const JVar& operator[](const std::string& field) const;
 
     virtual JVar& operator=(int64_t value)
     {
