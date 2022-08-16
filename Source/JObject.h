@@ -433,12 +433,7 @@ public:
 
     void ForEachField(const std::function<void(const std::string& name, const JVar& var)>& cb) const
     {
-        if (JType::OBJ != this->subtype)
-        {
-            return;
-        }
-
-        if (cb)
+        if (JType::OBJ == this->subtype && cb)
         {
             for (auto& pair : this->fields)
             {
@@ -449,12 +444,7 @@ public:
 
     void ForEachItem(const std::function<void(const JVar& var)>& cb) const
     {
-        if (JType::ARR != this->subtype)
-        {
-            return;
-        }
-
-        if (cb)
+        if (JType::ARR == this->subtype && cb)
         {
             for (size_t i = 0; i < this->fields.size(); i++)
             {
@@ -474,6 +464,12 @@ public:
         {
             (JField&)arr = nullptr;
             return true;
+        }
+
+        if (JType::ARR != this->subtype)
+        {
+            err = "This is not an array";
+            return false;
         }
 
         arr.Define();
@@ -562,6 +558,12 @@ public:
         {
             (JField&)obj = nullptr;
             return true;
+        }
+
+        if (JType::OBJ != this->subtype)
+        {
+            err = "This is not an object";
+            return false;
         }
 
         obj.Define();
