@@ -52,7 +52,7 @@ int main()
     }
 
     jvar = JVar();
-    if (!jvar.Deserialize("0x123") || JType::INT != jvar.Subtype() || !jvar.HasValue() || 0x123 != jvar.Int)
+    if (!jvar.Deserialize("0X1aB") || JType::INT != jvar.Subtype() || !jvar.HasValue() || 0x1AB != jvar.Int)
     {
         return -1;
     }

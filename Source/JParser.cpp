@@ -505,11 +505,12 @@ string JParser::GetNum(istream& json)
 
     bool digit = false;
     bool sign  = false;
+    bool hex   = false;
 
     auto c = GetChar(json);
     auto p = json.peek();
 
-    if ('0' == c && 'x' == p)
+    if ('0' == c && ('x' == p || 'X' == p))
     {
         oss << c << GetChar(json);
 
@@ -517,7 +518,23 @@ string JParser::GetNum(istream& json)
 
         digit = true;
         sign  = true;
+        hex   = true;
     }
+
+    const auto isnum = [hex](char c)
+    {
+        if (c >= '0' && c <= '9')
+        {
+            return true;
+        }
+
+        if (hex && ((c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')))
+        {
+            return true;
+        }
+
+        return false;
+    };
 
     do
     {
@@ -530,8 +547,7 @@ string JParser::GetNum(istream& json)
 
             sign = true;
         }
-
-        if ('.' == c)
+        else if ('.' == c)
         {
             if (digit)
             {
@@ -540,13 +556,18 @@ string JParser::GetNum(istream& json)
 
             digit = true;
         }
+        else if(!isnum(c))
+        {
+            throw Unexpected();
+        }
 
         oss << c;
 
-    } while ([&json, &c]
+    } while ([&json, &c, &isnum]
     {
         auto p = json.peek();
-        if ('.' == p || (p >= '0' && p <= '9'))
+
+        if ('.' == p || isnum(p))
         {
             c = GetChar(json);
             return true;
@@ -563,7 +584,8 @@ int64_t JParser::GetInt(istream& json)
     int64_t v;
 
     auto c = GetChar(json);
-    if ('0' == c && 'x' == json.peek())
+    auto p = json.peek();
+    if ('0' == c && ('x' == p || 'X' == p))
     {
         json.seekg(1, ios::cur);
         json >> hex >> v;
@@ -589,14 +611,20 @@ int64_t JParser::GetInt(istream& json)
 int64_t JParser::GetInt(const string& num)
 {
     int64_t v;
+    char* end;
 
-    if (num.length() > 2 && '0' == num[0] && 'x' == num[1])
+    if (num.length() > 2 && '0' == num[0] && ('x' == num[1] || 'X' == num[1]))
     {
-        istringstream(num.substr(2)) >> hex >> v;
+        v = strtoll(num.c_str(), &end, 16);
     }
     else
     {
-        istringstream(num) >> v;
+        v = strtoll(num.c_str(), &end, 10);
+    }
+
+    if (num.c_str() == end)
+    {
+        throw runtime_error("Failed to parse int");
     }
 
     return v;
@@ -609,11 +637,11 @@ int64_t JParser::GetInt(const string& json, string::size_type& off)
 
     if (json.length() > off + 2 && '0' == json[off] && ('x' == json[off + 1] || 'X' == json[off + 1]))
     {
-        value = std::strtoll(json.c_str() + off, &end, 16);
+        value = strtoll(json.c_str() + off, &end, 16);
     }
     else
     {
-        value = std::strtoll(json.c_str() + off, &end, 10);
+        value = strtoll(json.c_str() + off, &end, 10);
     }
 
     if (end == json.c_str() + off)
