@@ -819,17 +819,22 @@ public:
         return nullptr;
     }
 
-    JVar& operator=(double value) override
+    JVar& operator=(int64_t) override
     {
         return *this;
     }
 
-    JVar& operator=(bool value) override
+    JVar& operator=(double) override
     {
         return *this;
     }
 
-    JVar& operator=(const std::string& value) override
+    JVar& operator=(bool) override
+    {
+        return *this;
+    }
+
+    JVar& operator=(const std::string&) override
     {
         return *this;
     }
