@@ -174,8 +174,14 @@ bool JVar::ToArr(JArray& arr, string& err) const
 
                     case JType::OBJ:
                     {
+                        if (!var.ToObj(*(JObject*)item, err))
+                        {
+                            throw runtime_error(err);
+                        }
                         break;
                     }
+
+                    default: break;
                 }
             }
             else if (JType::NUM == item->Type() && JType::INT == var.Subtype())
@@ -277,6 +283,8 @@ bool JVar::ToObj(JObject& obj, string& err) const
                         }
                         break;
                     }
+
+                    default: break;
                 }
             }
             else if (JType::NUM == field->Type() && JType::INT == var.Subtype())

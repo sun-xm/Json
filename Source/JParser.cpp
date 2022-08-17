@@ -1078,6 +1078,12 @@ void JParser::GetJson(const JVar& var, ostream& json)
             break;
         }
 
+        case JType::INT:
+        {
+            json << var.Int;
+            break;
+        }
+
         case JType::NUM:
         {
             json << setprecision(numeric_limits<double>::digits10 + 1) << var.Num;
@@ -1160,5 +1166,7 @@ void JParser::GetJson(const JVar& var, ostream& json)
             json << ']';
             break;
         }
+
+        default: break;
     }
 }
