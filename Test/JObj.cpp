@@ -37,25 +37,21 @@ int main()
     size_t w;
     JOuter outer;
 
-    outer = JOuter();
     if (!outer.Deserialize("", e, w) || !outer.IsUndefined() || outer.IsNull() || outer.HasValue())
     {
         return -1;
     }
 
-    outer = JOuter();
     if (!outer.Deserialize("null", e, w) || outer.IsUndefined() || !outer.IsNull() || outer.HasValue())
     {
         return -1;
     }
 
-    outer = JOuter();
     if (!outer.Deserialize("{}", e, w) || outer.IsUndefined() || outer.IsNull() || !outer.HasValue())
     {
         return -1;
     }
 
-    outer = JOuter();
     if (!outer.Deserialize("{\"str\":\"str\", \"date\":\"1999-04-23T18:25:43.511Z\", \"arr\":[\"1\", \"2\"], \"inner\":{\"int\":123, \"flt\":1.23, \"var\":true}}", e, w))
     {
         return -1;
@@ -77,6 +73,23 @@ int main()
     }
 
     if (123 != outer.inner.num || 1.23 != outer.inner.flt || !outer.inner.var.Bool)
+    {
+        return -1;
+    }
+
+    outer.Clear();
+    if (!outer.IsUndefined())
+    {
+        return -1;
+    }
+
+    if (!outer.str.IsUndefined() || outer.str().length() || !outer.arr.IsUndefined() || outer.arr().size() || !outer.date.IsUndefined() || !outer.inner.IsUndefined())
+    {
+        return -1;
+    }
+
+    auto& inner = outer.inner;
+    if (!inner.num.IsUndefined() || !inner.flt.IsUndefined() || !inner.var.IsUndefined())
     {
         return -1;
     }

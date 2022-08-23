@@ -65,6 +65,8 @@ void JParser::Serialize(ostream& json, const JField& field)
 
 void JParser::Deserialize(istream& json, JField& field)
 {
+    field.Clear();
+
     char c;
     do
     {

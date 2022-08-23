@@ -40,6 +40,15 @@
                                         }\
                                     }\
                                 }\
+                                void Clear() override\
+                                {\
+                                    for (auto& pair : FieldOffsets)\
+                                    {\
+                                        auto field = (JField*)((char*)(this) + pair.second);\
+                                        field->Clear();\
+                                    }\
+                                    JField::Clear();\
+                                }\
                                 static const std::map<std::string, std::size_t> FieldOffsets;\
                             private:\
                                 typedef CLASS _SELF_
@@ -78,6 +87,15 @@
                                         BASE::ForEach(cb);\
                                     }\
                                 }\
+                                void Clear() override\
+                                {\
+                                    for (auto& pair : FieldOffsets)\
+                                    {\
+                                        auto field = (JField*)((char*)(this) + pair.second);\
+                                        field->Clear();\
+                                    }\
+                                    BASE::Clear();\
+                                }\
                                 static const std::map<std::string, std::size_t> FieldOffsets;\
                             private:\
                                 typedef CLASS _SELF_
@@ -93,6 +111,12 @@ public:
     JField() : undef(true), null(false) {}
 
     virtual JType Type() const = 0;
+
+    virtual void Clear()
+    {
+        this->undef = true;
+        this->null  = false;
+    }
 
     virtual bool IsUndefined() const
     {
@@ -148,6 +172,12 @@ class JArr : public JArray
     static_assert(std::is_base_of<JField, T>::value, "T must inherit from JField");
 
 public:
+    void Clear() override
+    {
+        this->Value.clear();
+        JField::Clear();
+    }
+
     T* GetNew() override
     {
         this->Value.push_back(T());
@@ -277,6 +307,12 @@ class JStr : public JValue<std::string>
 {
 public:
     JVALUE(JStr, std::string, STR);
+
+    void Clear() override
+    {
+        this->Value.clear();
+        JField::Clear();
+    }
 };
 
 class JBool : public JValue<bool>
@@ -314,6 +350,12 @@ public:
     JVar() : subtype(JType::VAR) {}
 
     void Define() { this->undef = false; }
+
+    void Clear() override
+    {
+        this->fields.clear();
+        JField::Clear();
+    }
 
     JType Type() const override
     {

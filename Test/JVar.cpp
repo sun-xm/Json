@@ -31,25 +31,21 @@ int main()
         return -1;
     }
 
-    jvar = JVar();
     if (!jvar.Deserialize("0X1aB") || JType::INT != jvar.Subtype() || !jvar.HasValue() || 0x1AB != jvar.Int)
     {
         return -1;
     }
 
-    jvar = JVar();
     if (jvar.Deserialize("1AB"))
     {
         return -1;
     }
 
-    jvar = JVar();
     if (!jvar.Deserialize("123e-2") || JType::NUM != jvar.Subtype() || !jvar.HasValue() || 1.23 != jvar.Num)
     {
         return -1;
     }
 
-    jvar = JVar();
     if (!jvar.Deserialize(R"(
         [
             123,
@@ -112,7 +108,6 @@ int main()
         return -1;
     }
 
-    jvar = JVar();
     if (!jvar.Deserialize("[1, 2, 3]"))
     {
         return -1;
@@ -140,7 +135,6 @@ int main()
         return -1;
     }
 
-    jvar = JVar();
     if (!jvar.Deserialize(R"(
         {
             "num": 1.0,
