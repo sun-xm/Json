@@ -7,15 +7,6 @@
 
 using namespace std;
 
-struct JObj : public JObject
-{
-    using JObject::operator=;
-    JOBJECT(JObj);
-};
-
-BEG_JFIELDS(JObj)
-END_JFIELDS
-
 int main(int argc, char* argv[])
 {
     string e;
@@ -45,6 +36,19 @@ int main(int argc, char* argv[])
     {
         cout << employee << endl;
         cout << employee.Serialize() << endl;
+    }
+    else
+    {
+        cout << JError(json, e) << endl;
+    }
+
+    JVar var;
+    json.clear();
+    json.seekg(0);
+    if (var.Deserialize(json, e))
+    {
+        cout << var << endl;
+        cout << var["skills"][1] << endl;
     }
     else
     {
