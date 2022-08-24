@@ -10,6 +10,7 @@
 
 #define GETFIELD(f, n)  (JType::OBJ == f->Type() ? ((JObject*)f)->GetField(n) : ((JVar*)f)->GetNewField(n))
 #define GETNEW(f)       (JType::ARR == f->Type() ? ((JArray*)f)->GetNew() : ((JVar*)f)->GetNewItem())
+#define DEFINE(f)       (JType::OBJ == f->Type() ? ((JObject*)f)->Define() : ((JVar*)f)->Define())
 
 using namespace std;
 
@@ -307,14 +308,7 @@ void JParser::GetObj(istream& json, JField* obj)
 {
     if (obj)
     {
-        if (JType::OBJ == obj->Type())
-        {
-            ((JObject*)obj)->Define();
-        }
-        else
-        {
-            ((JVar*)obj)->Define();
-        }
+        DEFINE(obj);
     }
 
     auto c = FirstNotSpace(json);
@@ -342,6 +336,8 @@ void JParser::GetObj(istream& json, JField* obj)
                 json.seekg(-1, ios::cur);
                 throw TypeMismatch(n, f->Type(), JType::OBJ);
             }
+
+            DEFINE(f);
 
             n = GetName(json);
             f = f ? GETFIELD(f, n) : nullptr;

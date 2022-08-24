@@ -135,6 +135,11 @@ int main()
         return -1;
     }
 
+    if (!jvar.Deserialize("{\"a.b\":1}") || !jvar.HasValue() || !jvar["a"].HasValue() || !jvar["a"]["b"].HasValue() || 1 != jvar["a"]["b"].Int)
+    {
+        return -1;
+    }
+
     if (!jvar.Deserialize(R"(
         {
             "num": 1.0,

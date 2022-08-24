@@ -94,5 +94,15 @@ int main()
         return -1;
     }
 
+    outer.Deserialize(R"(
+        {
+            "inner.int": 1
+        }
+    )");
+    if (!outer.HasValue() || !outer.inner.HasValue() || 1 != outer.inner.num)
+    {
+        return -1;
+    }
+
     return 0;
 }
