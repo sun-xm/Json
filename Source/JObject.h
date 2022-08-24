@@ -353,6 +353,8 @@ public:
 
     void Clear() override
     {
+        this->subtype = JType::VAR;
+        this->Str.clear();
         this->fields.clear();
         JField::Clear();
     }
