@@ -110,6 +110,8 @@ JVar* JVar::GetNewField(const string& name)
 
 bool JVar::ToArr(JArray& arr, string& err) const
 {
+    arr.Clear();
+
     if (this->undef)
     {
         return true;
@@ -204,6 +206,8 @@ bool JVar::ToArr(JArray& arr, string& err) const
 
 bool JVar::ToObj(JObject& obj, string& err) const
 {
+    obj.Clear();
+
     if (this->undef)
     {
         return true;
