@@ -29,7 +29,13 @@ int main()
     JArr<JArr<JInt>> jarrarr;
     if (!jarrarr.Deserialize("[[0, 1], [2, 3]]", e, w) || 0 != jarrarr[0][0] || 1 != jarrarr[0][1] || 2 != jarrarr[1][0] || 3 != jarrarr[1][1])
     {
-        return false;
+        return -1;
+    }
+
+    jarr = nullptr;
+    if (jarr.IsUndefined() || !jarr.IsNull())
+    {
+        return -1;
     }
 
     return 0;

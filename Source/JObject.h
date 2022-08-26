@@ -226,6 +226,12 @@ public:
         return this->Value;
     }
 
+    nullptr_t operator=(nullptr_t) override
+    {
+        this->Value.clear();
+        return JField::operator=(nullptr);
+    }
+
     std::vector<T> Value;
 };
 
@@ -424,6 +430,13 @@ public:
     JVar& operator[](const std::string& field);
     const JVar& operator[](const std::string& field) const;
 
+    nullptr_t operator=(nullptr_t) override
+    {
+        this->Str.clear();
+        this->fields.clear();
+        return JField::operator=(nullptr);
+    }
+
     virtual JVar& operator=(int64_t value)
     {
         this->Str.clear();
@@ -474,6 +487,22 @@ public:
 
         return *this;
     }
+
+    virtual JVar& operator=(const JVar& var)
+    {
+        this->Clear();
+
+        ((JField&)*this) = var;
+
+        this->Int = var.Int;
+        this->Str = var.Str;
+        this->fields = var.fields;
+        this->subtype = var.subtype;
+
+        return *this;
+    }
+
+    virtual JVar& operator=(const JField& field);
 
     union
     {
@@ -545,6 +574,11 @@ public:
     }
 
     JVar& operator=(const std::string&) override
+    {
+        return *this;
+    }
+
+    JVar& operator=(const JField& field) override
     {
         return *this;
     }

@@ -185,6 +185,28 @@ int main()
         return -1;
     }
 
+    JVar jv;
+    jv = jouter;
+    if (!jv["num"].HasValue() || !jv["ints"].HasValue() || !jv["inner"].HasValue())
+    {
+        return -1;
+    }
+
+    if (1.0 != jv["num"].Num)
+    {
+        return -1;
+    }
+
+    if (!jv["ints"][2].IsNull())
+    {
+        return -1;
+    }
+
+    if (!jv["inner"]["str"].HasValue() || "123" != jv["inner"]["str"].Str)
+    {
+        return -1;
+    }
+
     JUndVar juv;
     if (!juv.Deserialize("123") || juv.HasValue())
     {

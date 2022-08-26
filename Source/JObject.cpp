@@ -143,7 +143,11 @@ bool JVar::ToArr(JArray& arr, string& err) const
                 return;
             }
 
-            if (item->Type() == var.Subtype())
+            if (JType::VAR == item->Type())
+            {
+                *(JVar*)item = var;
+            }
+            else if (item->Type() == var.Subtype())
             {
                 switch (item->Type())
                 {
@@ -248,7 +252,11 @@ bool JVar::ToObj(JObject& obj, string& err) const
                 return;
             }
 
-            if (field->Type() == var.Subtype())
+            if (JType::VAR == field->Type())
+            {
+                *(JVar*)field = var;
+            }
+            else if (field->Type() == var.Subtype())
             {
                 switch (field->Type())
                 {
@@ -367,4 +375,87 @@ const JVar& JVar::operator[](const string& field) const
     }
 
     return this->fields.find(field)->second;
+}
+
+JVar& JVar::operator=(const JField& field)
+{
+    this->Clear();
+
+    if (field.IsUndefined())
+    {
+        return *this;
+    }
+
+    this->Define();
+
+    if (field.IsNull())
+    {
+        *this = nullptr;
+        return *this;
+    }
+
+    switch (field.Type())
+    {
+        case JType::INT:
+        {
+            *this = ((JInt&)field)();
+            break;
+        }
+
+        case JType::NUM:
+        {
+            *this = ((JNum&)field)();
+            break;
+        }
+
+        case JType::STR:
+        {
+            *this = ((JStr&)field)();
+            break;
+        }
+
+        case JType::BOOL:
+        {
+            *this = ((JBool&)field)();
+            break;
+        }
+
+        case JType::DATE:
+        {
+            *this = field.Serialize();
+            break;
+        }
+
+        case JType::ARR:
+        {
+            ((JArray&)field).ForEach([this](const JField& field)
+            {
+                auto item = this->GetNewItem();
+                *item = field;
+            });
+
+            break;
+        }
+
+        case JType::OBJ:
+        {
+            ((JObject&)field).ForEach([this](const string& name, const JField& field)
+            {
+                auto f = this->GetNewField(name);
+                *f = field;
+            });
+
+            break;
+        }
+
+        case JType::VAR:
+        {
+            *this = (JVar&)field;
+            break;
+        }
+
+        default: break;
+    }
+
+    return *this;
 }
