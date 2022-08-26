@@ -226,7 +226,7 @@ public:
         return this->Value;
     }
 
-    nullptr_t operator=(nullptr_t) override
+    std::nullptr_t operator=(std::nullptr_t) override
     {
         this->Value.clear();
         return JField::operator=(nullptr);
@@ -430,7 +430,7 @@ public:
     JVar& operator[](const std::string& field);
     const JVar& operator[](const std::string& field) const;
 
-    nullptr_t operator=(nullptr_t) override
+    std::nullptr_t operator=(std::nullptr_t) override
     {
         this->Str.clear();
         this->fields.clear();
