@@ -84,7 +84,7 @@ JVar* JVar::GetNewItem()
     if (JType::ARR != this->subtype)
     {
         this->fields.clear();
-        this->subtype = JType::ARR;
+        this->Define(JType::ARR);
     }
 
     auto name = to_string(this->fields.size());
@@ -96,7 +96,7 @@ JVar* JVar::GetNewField(const string& name)
     if (JType::OBJ != this->subtype)
     {
         this->fields.clear();
-        this->subtype = JType::OBJ;
+        this->Define(JType::OBJ);
     }
 
     auto itr = this->fields.find(name);
@@ -386,8 +386,6 @@ JVar& JVar::operator=(const JField& field)
         return *this;
     }
 
-    this->Define();
-
     if (field.IsNull())
     {
         *this = nullptr;
@@ -428,6 +426,8 @@ JVar& JVar::operator=(const JField& field)
 
         case JType::ARR:
         {
+            this->Define(JType::ARR);
+
             ((JArray&)field).ForEach([this](const JField& field)
             {
                 auto item = this->GetNewItem();
@@ -439,6 +439,8 @@ JVar& JVar::operator=(const JField& field)
 
         case JType::OBJ:
         {
+            this->Define(JType::OBJ);
+
             ((JObject&)field).ForEach([this](const string& name, const JField& field)
             {
                 auto f = this->GetNewField(name);

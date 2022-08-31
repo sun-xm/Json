@@ -163,7 +163,11 @@ public:
         return JType::ARR;
     }
 
-    void Define() { this->undef = false; }
+    void Define()
+    {
+        this->undef = false;
+        this->null  = false;
+    }
 };
 
 template<typename T>
@@ -341,7 +345,11 @@ public:
         return JType::OBJ;
     }
 
-    void Define() { this->undef = false; }
+    void Define()
+    {
+        this->undef = false;
+        this->null  = false;
+    }
 
     virtual JField* GetField(size_t offset) = 0;
     virtual JField* GetField(const std::string&) = 0;
@@ -355,7 +363,21 @@ class JVar : public JField
 public:
     JVar() : subtype(JType::VAR) {}
 
-    void Define() { this->undef = false; }
+    void Define(JType type)
+    {
+        if (JType::ARR == type || JType::OBJ == type)
+        {
+            if (this->subtype != type)
+            {
+                this->fields.clear();
+                this->Str.clear();
+            }
+
+            this->subtype = type;
+            this->undef = false;
+            this->null  = false;
+        }
+    }
 
     void Clear() override
     {
@@ -450,6 +472,11 @@ public:
         return *this;
     }
 
+    virtual JVar& operator=(int32_t value)
+    {
+        return (*this = (int64_t)value);
+    }
+
     virtual JVar& operator=(double value)
     {
         this->Str.clear();
@@ -461,6 +488,11 @@ public:
         this->Num   = value;
 
         return *this;
+    }
+
+    virtual JVar& operator=(float value)
+    {
+        return (*this = (double)value);
     }
 
     virtual JVar& operator=(bool value)
@@ -563,7 +595,17 @@ public:
         return *this;
     }
 
+    JVar& operator=(int32_t) override
+    {
+        return *this;
+    }
+
     JVar& operator=(double) override
+    {
+        return *this;
+    }
+
+    JVar& operator=(float) override
     {
         return *this;
     }
