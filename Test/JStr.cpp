@@ -2,36 +2,34 @@
 
 int main()
 {
-    std::string e;
-    size_t w;
     JStr jstr;
 
-    if (!jstr.Deserialize("", e, w) || !jstr.IsUndefined() || jstr.IsNull() || jstr.HasValue())
+    if (!jstr.Deserialize("") || !jstr.IsUndefined() || jstr.IsNull() || jstr.HasValue())
     {
         return -1;
     }
 
-    if (!jstr.Deserialize("null", e, w) || jstr.IsUndefined() || !jstr.IsNull() || jstr.HasValue())
+    if (!jstr.Deserialize("null") || jstr.IsUndefined() || !jstr.IsNull() || jstr.HasValue())
     {
         return -1;
     }
 
-    if (!jstr.Deserialize("\"123\"", e, w) || "123" != jstr.Value)
+    if (!jstr.Deserialize("\"123\"") || "123" != jstr.Value)
     {
         return -1;
     }
 
-    if (!jstr.Deserialize("\"\t\\t \n\\n \\\" nrt\"", e, w) || "\t\t \n\n \" nrt" != jstr.Value)
+    if (!jstr.Deserialize("\"\t\\t \n\\n \\\" nrt\"") || "\t\t \n\n \" nrt" != jstr.Value)
     {
         return -1;
     }
 
-    if (!jstr.Deserialize("\"街道\"", e, w) || "街道" != jstr.Value)
+    if (!jstr.Deserialize("\"街道\"") || "街道" != jstr.Value)
     {
         return -1;
     }
 
-    if (!jstr.Deserialize("\"\\u4e2d\\u56fd\"", e, w) || "中国" != jstr.Value)
+    if (!jstr.Deserialize("\"\\u4e2d\\u56fd\"") || "中国" != jstr.Value)
     {
         return -1;
     }
