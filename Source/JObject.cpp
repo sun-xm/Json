@@ -349,17 +349,12 @@ const JVar& JVar::operator[](size_t index) const
 
 JVar& JVar::operator[](const string& field)
 {
-    if (JType::OBJ != this->Subtype())
+    if (JType::OBJ != this->Subtype() && JType::VAR != this->Subtype())
     {
         throw runtime_error("Is not an object");
     }
 
-    if (!this->HasValue() || !this->HasField(field))
-    {
-        return (JVar&)*UndVar;
-    }
-
-    return this->fields.find(field)->second;
+    return *this->GetNewField(field);
 }
 
 const JVar& JVar::operator[](const string& field) const

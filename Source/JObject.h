@@ -520,6 +520,18 @@ public:
         return *this;
     }
 
+    virtual JVar& operator=(const char* value)
+    {
+        this->fields.clear();
+
+        this->subtype = JType::STR;
+        this->undef = false;
+        this->null  = false;
+        this->Str   = value;
+
+        return *this;
+    }
+
     virtual JVar& operator=(const JVar& var)
     {
         this->Clear();

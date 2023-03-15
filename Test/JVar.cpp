@@ -365,6 +365,39 @@ bool Asign()
     return true;
 }
 
+bool Compose()
+{
+    JVar jvar;
+    jvar["int"] = 123;
+    jvar["num"] = 1.23;
+
+    JVar& jobj = jvar["obj"];
+    JVar& jstr = jobj["str"];
+    jvar["obj"]["str"] = "123";
+
+    if (JType::OBJ != jvar.Subtype())
+    {
+        return false;
+    }
+
+    if (JType::INT != jvar["int"].Subtype() || JType::NUM != jvar["num"].Subtype() || JType::OBJ != jvar["obj"].Subtype())
+    {
+        return false;
+    }
+
+    if (123 != jvar["int"].Int || 1.23 != jvar["num"].Num)
+    {
+        return false;
+    }
+
+    if (JType::STR != jvar["obj"]["str"].Subtype() || "123" != jvar["obj"]["str"].Str)
+    {
+        return false;
+    }
+
+    return true;
+}
+
 int main()
 {
     if (!Deserialize())
@@ -388,6 +421,11 @@ int main()
     }
 
     if (!Asign())
+    {
+        return -1;
+    }
+
+    if (!Compose())
     {
         return -1;
     }
