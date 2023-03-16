@@ -399,7 +399,7 @@ public:
 
     virtual size_t Size() const
     {
-        return JType::ARR == this->subtype ? this->fields.size() : 0;
+        return (JType::ARR == this->subtype || JType::OBJ == this->subtype) ? this->fields.size() : 0;
     }
 
     virtual bool HasField(const std::string& name) const
