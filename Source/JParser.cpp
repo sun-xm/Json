@@ -1042,7 +1042,7 @@ void JParser::GetJson(const JDate& date, ostream& json)
 {
     tm tm;
     time_t dt = date;
-#ifdef WIN32
+#if defined(WIN32) || defined(_WIN32)
     localtime_s(&tm, &dt);
 #else
     tm = *localtime(&dt);
