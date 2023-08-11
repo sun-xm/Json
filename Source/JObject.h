@@ -265,7 +265,7 @@ public:
 
     const T& ValueOrDefault(const T& default)
     {
-        return this->HasValue() ? this->value : default;
+        return this->HasValue() ? this->Value : default;
     }
 
     bool operator==(const JValue<T>& other)
