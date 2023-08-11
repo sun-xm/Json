@@ -258,6 +258,16 @@ public:
         return *this;
     }
 
+    T& ValueOrDefault(T& default)
+    {
+        return this->HasValue() ? this->Value : default;
+    }
+
+    const T& ValueOrDefault(const T& default)
+    {
+        return this->HasValue() ? this->value : default;
+    }
+
     bool operator==(const JValue<T>& other)
     {
         if (this->undef && other.undef)
