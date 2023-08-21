@@ -258,14 +258,14 @@ public:
         return *this;
     }
 
-    T& ValueOrDefault(T& default)
+    T& ValueOrDefault(T& defVal)
     {
-        return this->HasValue() ? this->Value : default;
+        return this->HasValue() ? this->Value : defVal;
     }
 
-    const T& ValueOrDefault(const T& default)
+    const T& ValueOrDefault(const T& defVal)
     {
-        return this->HasValue() ? this->Value : default;
+        return this->HasValue() ? this->Value : defVal;
     }
 
     bool operator==(const JValue<T>& other)
