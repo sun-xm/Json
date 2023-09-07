@@ -258,12 +258,7 @@ public:
         return *this;
     }
 
-    T& ValueOrDefault(T& defVal)
-    {
-        return this->HasValue() ? this->Value : defVal;
-    }
-
-    const T& ValueOrDefault(const T& defVal)
+    const T& ValueOrDefault(const T& defVal) const
     {
         return this->HasValue() ? this->Value : defVal;
     }
