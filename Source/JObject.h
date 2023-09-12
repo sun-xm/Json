@@ -298,6 +298,11 @@ public:
         return this->Value;
     }
 
+    const T& operator()(const T& defVal) const
+    {
+        return this->ValueOrDefault(defVal);
+    }
+
     T Value;
 };
 
