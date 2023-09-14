@@ -11,9 +11,26 @@
 #define JOBJECT(CLASS)      public:\
                                 std::nullptr_t operator=(std::nullptr_t) override\
                                 {\
+                                    this->Clear();\
                                     this->undef = false;\
                                     this->null  = true;\
                                     return nullptr;\
+                                }\
+                                bool IsUndefined() const override\
+                                {\
+                                    if (!this->undef)\
+                                    {\
+                                        return false;\
+                                    }\
+                                    for (auto& pair : FieldOffsets)\
+                                    {\
+                                        auto field = (JField*)((char*)(this) + pair.second);\
+                                        if (!field->IsUndefined())\
+                                        {\
+                                            return false;\
+                                        }\
+                                    }\
+                                    return true;\
                                 }\
                                 JField* GetField(size_t offset) override\
                                 {\
@@ -57,9 +74,26 @@
                             public:\
                                 std::nullptr_t operator=(std::nullptr_t) override\
                                 {\
+                                    this->Clear();\
                                     this->undef = false;\
                                     this->null  = true;\
                                     return nullptr;\
+                                }\
+                                bool IsUndefined() const override\
+                                {\
+                                    if (!this->undef)\
+                                    {\
+                                        return false;\
+                                    }\
+                                    for (auto& pair : FieldOffsets)\
+                                    {\
+                                        auto field = (JField*)((char*)(this) + pair.second);\
+                                        if (!field->IsUndefined())\
+                                        {\
+                                            return false;\
+                                        }\
+                                    }\
+                                    return BASE::IsUndefined();\
                                 }\
                                 JField* GetField(size_t offset) override\
                                 {\

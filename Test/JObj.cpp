@@ -104,5 +104,28 @@ int main()
         return -1;
     }
 
+    outer.Clear();
+    if (!outer.IsUndefined())
+    {
+        return -1;
+    }
+
+    if (!outer.str.IsUndefined() || !outer.date.IsUndefined() || !outer.arr.IsUndefined() || !inner.IsUndefined())
+    {
+        return -1;
+    }
+
+    outer.str = "123";
+    if (outer.IsUndefined())
+    {
+        return -1;
+    }
+
+    outer = nullptr;
+    if (outer.IsUndefined() || !outer.IsNull())
+    {
+        return -1;
+    }
+
     return 0;
 }
