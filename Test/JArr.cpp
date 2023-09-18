@@ -38,5 +38,51 @@ int main()
         return -1;
     }
 
+    jarr.Clear();
+    if (!jarr.IsUndefined())
+    {
+        return -1;
+    }
+
+    jarr.Push(JInt(0));
+    if (0 != jarr[0])
+    {
+        return -1;
+    }
+
+    jarr.Unshift(JInt(1));
+    if (1 != jarr[0])
+    {
+        return -1;
+    }
+
+    jarr.Insert(JInt(2), 1);
+    if (2 != jarr[1])
+    {
+        return -1;
+    }
+
+    JArr<JInt> jsub;
+    jsub.Push(JInt(3));
+    jsub.Push(JInt(4));
+
+    jarr.Insert(jsub, 1);
+    if (3 != jarr[1] || 4 != jarr[2])
+    {
+        return -1;
+    }
+
+    jarr.Insert({ JInt(5), JInt(6) }, 1);
+    if (5 != jarr[1] || 6 != jarr[2])
+    {
+        return -1;
+    }
+
+    jarr = { JInt(0), JInt(1), JInt(2) };
+    if (0 != jarr[0] || 1 != jarr[1] || 2 != jarr[2])
+    {
+        return -1;
+    }
+
     return 0;
 }

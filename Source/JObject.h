@@ -3,6 +3,7 @@
 #include "JType.h"
 #include <cstdint>
 #include <functional>
+#include <initializer_list>
 #include <map>
 #include <string>
 #include <vector>
@@ -216,6 +217,39 @@ public:
         JField::Clear();
     }
 
+    size_t Length() const
+    {
+        return this->Value.size();
+    }
+
+    void Insert(const T& value, size_t before)
+    {
+        auto itr = this->Value.begin() + (before > this->Value.size() ? this->Value.size() : before);
+        this->Value.insert(itr, value);
+    }
+
+    void Insert(const JArr<T>& values, size_t before)
+    {
+        auto itr = this->Value.begin() + (before > this->Value.size() ? this->Value.size() : before);
+        this->Value.insert(itr, values.Value.begin(), values.Value.end());
+    }
+
+    void Insert(const std::initializer_list<T>& list, size_t before)
+    {
+        auto itr = this->Value.begin() + (before > this->Value.size() ? this->Value.size() : before);
+        this->Value.insert(itr, list);
+    }
+
+    void Push(const T& value)
+    {
+        this->Value.push_back(value);
+    }
+
+    void Unshift(const T& value)
+    {
+        this->Value.insert(this->Value.begin(), value);
+    }
+
     T* GetNew() override
     {
         this->Value.push_back(T());
@@ -268,6 +302,12 @@ public:
     {
         this->Value.clear();
         return JField::operator=(nullptr);
+    }
+
+    JArr<T>& operator=(const std::initializer_list<T>& list)
+    {
+        this->Value = list;
+        return *this;
     }
 
     std::vector<T> Value;
