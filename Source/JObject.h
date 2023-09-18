@@ -318,7 +318,7 @@ class JValue : public JField
 {
 public:
     JValue() = default;
-    JValue(T value) : Value(value)
+    JValue(const T& value) : Value(value)
     {
         this->undef = false;
         this->null  = false;
