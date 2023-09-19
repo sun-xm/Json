@@ -28,6 +28,7 @@ bool JField::Deserialize(const string& json)
 
     } catch(const exception&)
     {
+        this->Clear();
         return false;
     }
 }
@@ -41,6 +42,7 @@ bool JField::Deserialize(istream& json)
 
     } catch(const exception&)
     {
+        this->Clear();
         return false;
     }
 }
@@ -51,11 +53,14 @@ bool JField::Deserialize(const string& json, string& error, size_t& where)
 
     try
     {
+        where = -1;
+        error.clear();
         JParser::Deserialize(stream, *this);
         return true;
 
     } catch(const exception& e)
     {
+        this->Clear();
         where = stream ? (size_t)stream.tellg() : json.length();
         error = e.what();
         return false;
@@ -66,11 +71,13 @@ bool JField::Deserialize(istream& json, string& error)
 {
     try
     {
+        error.clear();
         JParser::Deserialize(json, *this);
         return true;
 
     } catch(const exception& e)
     {
+        this->Clear();
         error = e.what();
         return false;
     }
