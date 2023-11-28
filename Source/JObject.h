@@ -278,6 +278,11 @@ public:
         }
     }
 
+    const std::vector<T>& ValueOrDefault(const std::vector<T>& defVal) const
+    {
+        return this->HasValue() ? this->Value : defVal;
+    }
+
     T& operator[](size_t index)
     {
         return this->Value[index];
@@ -296,6 +301,11 @@ public:
     const std::vector<T>& operator()() const
     {
         return this->Value;
+    }
+
+    const std::vector<T>& operator()(const std::vector<T>& defVal) const
+    {
+        return this->ValueOrDefault(defVal);
     }
 
     std::nullptr_t operator=(std::nullptr_t) override
