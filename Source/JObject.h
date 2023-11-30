@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-#define OFFSETOF(t, m)  ((size_t)&reinterpret_cast<char const volatile&>(static_cast<JField&>(((t*)0)->m)))
+#define OFFSETOF(t, m)  ((std::size_t)&reinterpret_cast<char const volatile&>(static_cast<JField&>(((t*)0)->m)))
 #define JOBJECT(CLASS)      public:\
                                 std::nullptr_t operator=(std::nullptr_t) override\
                                 {\
@@ -33,7 +33,7 @@
                                     }\
                                     return true;\
                                 }\
-                                JField* GetField(size_t offset) override\
+                                JField* GetField(std::size_t offset) override\
                                 {\
                                     return (JField*)((char*)this + offset);\
                                 }\
@@ -96,7 +96,7 @@
                                     }\
                                     return BASE::IsUndefined();\
                                 }\
-                                JField* GetField(size_t offset) override\
+                                JField* GetField(std::size_t offset) override\
                                 {\
                                     return (JField*)((char*)this + offset);\
                                 }\
@@ -179,7 +179,7 @@ public:
     bool Serialize(std::ostream& json) const;
     bool Deserialize(const std::string& json);
     bool Deserialize(std::istream& json);
-    bool Deserialize(const std::string& json, std::string& error, size_t& where);
+    bool Deserialize(const std::string& json, std::string& error, std::size_t& where);
     bool Deserialize(std::istream& json, std::string& error);
 
 protected:
@@ -217,24 +217,24 @@ public:
         JField::Clear();
     }
 
-    size_t Length() const
+    std::size_t Length() const
     {
         return this->Value.size();
     }
 
-    void Insert(const T& value, size_t before)
+    void Insert(const T& value, std::size_t before)
     {
         auto itr = this->Value.begin() + (before > this->Value.size() ? this->Value.size() : before);
         this->Value.insert(itr, value);
     }
 
-    void Insert(const JArr<T>& values, size_t before)
+    void Insert(const JArr<T>& values, std::size_t before)
     {
         auto itr = this->Value.begin() + (before > this->Value.size() ? this->Value.size() : before);
         this->Value.insert(itr, values.Value.begin(), values.Value.end());
     }
 
-    void Insert(const std::initializer_list<T>& list, size_t before)
+    void Insert(const std::initializer_list<T>& list, std::size_t before)
     {
         auto itr = this->Value.begin() + (before > this->Value.size() ? this->Value.size() : before);
         this->Value.insert(itr, list);
@@ -278,17 +278,12 @@ public:
         }
     }
 
-    const std::vector<T>& ValueOrDefault(const std::vector<T>& defVal) const
-    {
-        return this->HasValue() ? this->Value : defVal;
-    }
-
-    T& operator[](size_t index)
+    T& operator[](std::size_t index)
     {
         return this->Value[index];
     }
 
-    const T& operator[](size_t index) const
+    const T& operator[](std::size_t index) const
     {
         return this->Value[index];
     }
@@ -301,11 +296,6 @@ public:
     const std::vector<T>& operator()() const
     {
         return this->Value;
-    }
-
-    const std::vector<T>& operator()(const std::vector<T>& defVal) const
-    {
-        return this->ValueOrDefault(defVal);
     }
 
     std::nullptr_t operator=(std::nullptr_t) override
@@ -445,7 +435,7 @@ public:
         this->null  = false;
     }
 
-    virtual JField* GetField(size_t offset) = 0;
+    virtual JField* GetField(std::size_t offset) = 0;
     virtual JField* GetField(const std::string&) = 0;
     virtual void ForEach(const std::function<void(const std::string& name, const JField& field)>& cb) const = 0;
 };
@@ -491,7 +481,7 @@ public:
         return this->subtype;
     }
 
-    virtual size_t Size() const
+    virtual std::size_t Size() const
     {
         return (JType::ARR == this->subtype || JType::OBJ == this->subtype) ? this->fields.size() : 0;
     }
@@ -516,7 +506,7 @@ public:
     {
         if (JType::ARR == this->subtype && cb)
         {
-            for (size_t i = 0; i < this->fields.size(); i++)
+            for (std::size_t i = 0; i < this->fields.size(); i++)
             {
                 cb((*this)[i]);
             }
@@ -541,8 +531,8 @@ public:
         return this->ToObj(obj, err);
     }
 
-    JVar& operator[](size_t index);
-    const JVar& operator[](size_t index) const;
+    JVar& operator[](std::size_t index);
+    const JVar& operator[](std::size_t index) const;
     JVar& operator[](const std::string& field);
     const JVar& operator[](const std::string& field) const;
 
@@ -681,7 +671,7 @@ public:
         return JType::VAR;
     }
 
-    size_t Size() const override
+    std::size_t Size() const override
     {
         return 0;
     }
