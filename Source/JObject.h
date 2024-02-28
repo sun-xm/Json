@@ -217,6 +217,16 @@ public:
         JField::Clear();
     }
 
+    bool IsUndefined() const override
+    {
+        return this->undef && !this->Length();
+    }
+
+    bool IsNull() const override
+    {
+        return this->null && !this->Length();
+    }
+
     std::size_t Length() const
     {
         return this->Value.size();
