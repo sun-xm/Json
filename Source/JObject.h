@@ -214,7 +214,7 @@ public:
     void Clear() override
     {
         this->Value.clear();
-        JField::Clear();
+        JArray::Clear();
     }
 
     bool IsUndefined() const override
@@ -317,6 +317,7 @@ public:
     JArr<T>& operator=(const std::initializer_list<T>& list)
     {
         this->Value = list;
+        this->Define();
         return *this;
     }
 
