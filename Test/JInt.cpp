@@ -34,5 +34,17 @@ int main()
         return -1;
     }
 
+    jint = 0;
+    if (jint.IsNull())
+    {
+        return false;
+    }
+
+    jint = nullptr;
+    if (!jint.IsNull())
+    {
+        return false;
+    }
+
     return 0;
 }

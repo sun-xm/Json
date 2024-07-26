@@ -10,12 +10,9 @@
 
 #define OFFSETOF(t, m)  ((std::size_t)&reinterpret_cast<char const volatile&>(static_cast<JField&>(((t*)0)->m)))
 #define JOBJECT(CLASS)      public:\
-                                std::nullptr_t operator=(std::nullptr_t) override\
+                                CLASS& operator=(std::nullptr_t)\
                                 {\
-                                    this->Clear();\
-                                    this->undef = false;\
-                                    this->null  = true;\
-                                    return nullptr;\
+                                    return (CLASS&)JField::operator=(nullptr);\
                                 }\
                                 bool IsUndefined() const override\
                                 {\
@@ -73,12 +70,9 @@
 
 #define JOBJECT_INHERIT(CLASS, BASE)\
                             public:\
-                                std::nullptr_t operator=(std::nullptr_t) override\
+                                CLASS& operator=(std::nullptr_t)\
                                 {\
-                                    this->Clear();\
-                                    this->undef = false;\
-                                    this->null  = true;\
-                                    return nullptr;\
+                                    return (CLASS&)JField::operator=(nullptr);\
                                 }\
                                 bool IsUndefined() const override\
                                 {\
@@ -144,6 +138,7 @@ class JField
 {
 public:
     JField() : undef(true), null(false) {}
+    JField(std::nullptr_t) : undef(false), null(true) {}
 
     virtual JType Type() const = 0;
 
@@ -168,11 +163,12 @@ public:
         return !(this->IsNull() || this->IsUndefined());
     }
 
-    virtual std::nullptr_t operator=(std::nullptr_t)
+    virtual JField& operator=(std::nullptr_t)
     {
+        this->Clear();
         this->undef = false;
         this->null  = true;
-        return nullptr;
+        return *this;
     }
 
     std::string Serialize() const;
@@ -260,7 +256,7 @@ public:
         this->Value.insert(this->Value.begin(), value);
     }
 
-    T* GetNew() override
+    T* GetNew() override // Caution: Returned pointer may become invalid after subsequent call due to reallocation.
     {
         this->Value.push_back(T());
         return &this->Value.back();
@@ -308,13 +304,14 @@ public:
         return this->Value;
     }
 
-    std::nullptr_t operator=(std::nullptr_t) override
+    JArr& operator=(std::nullptr_t)
     {
         this->Value.clear();
-        return JField::operator=(nullptr);
+        JField::operator=(nullptr);
+        return *this;
     }
 
-    JArr<T>& operator=(const std::initializer_list<T>& list)
+    JArr& operator=(const std::initializer_list<T>& list)
     {
         this->Value = list;
         this->Define();
@@ -334,13 +331,19 @@ public:
         this->undef = false;
         this->null  = false;
     }
+    explicit JValue(std::nullptr_t) : JField(nullptr) {}
 
-    JValue<T>& operator=(const T& value)
+    virtual JValue& operator=(const T& value)
     {
         this->Value = value;
         this->undef = false;
         this->null  = false;
         return *this;
+    }
+
+    virtual JValue& operator=(std::nullptr_t)
+    {
+        return (JValue&)JField::operator=(nullptr);
     }
 
     const T& ValueOrDefault(const T& defVal) const
@@ -393,6 +396,7 @@ public:
 
 #define JVALUE(C, V, T) C() = default;\
                         C(V v) : JValue<V>(v){}\
+                        explicit C(std::nullptr_t) : JValue<V>(nullptr){}\
                         using JValue<V>::operator=;\
                         JType Type() const override { return JType::T; }
 
@@ -400,6 +404,18 @@ class JInt : public JValue<int64_t>
 {
 public:
     JVALUE(JInt, int64_t, INT);
+
+    JInt& operator=(int32_t v)
+    {
+        *this = (int64_t)v;
+        return *this;
+    }
+
+    JInt& operator=(uint32_t v)
+    {
+        *this = (int64_t)v;
+        return *this;
+    }
 };
 
 class JNum : public JValue<double>
@@ -416,7 +432,7 @@ public:
     void Clear() override
     {
         this->Value.clear();
-        JField::Clear();
+        JValue<std::string>::Clear();
     }
 };
 
@@ -547,13 +563,6 @@ public:
     JVar& operator[](const std::string& field);
     const JVar& operator[](const std::string& field) const;
 
-    std::nullptr_t operator=(std::nullptr_t) override
-    {
-        this->Str.clear();
-        this->fields.clear();
-        return JField::operator=(nullptr);
-    }
-
     virtual JVar& operator=(int64_t value)
     {
         this->Str.clear();
@@ -642,6 +651,11 @@ public:
     }
 
     virtual JVar& operator=(const JField& field);
+
+    virtual JVar& operator=(std::nullptr_t)
+    {
+        return (JVar&)JField::operator=(nullptr);
+    }
 
     union
     {
@@ -732,8 +746,8 @@ public:
         return *this;
     }
 
-    std::nullptr_t operator=(std::nullptr_t) override
+    JVar& operator=(std::nullptr_t) override
     {
-        return nullptr;
+        return *this;
     }
 };

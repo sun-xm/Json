@@ -293,6 +293,18 @@ bool Asign()
         return false;
     }
 
+    jvar = 0;
+    if (jvar.IsNull())
+    {
+        return false;
+    }
+
+    jvar = nullptr;
+    if (!jvar.IsNull() || JType::VAR != jvar.Subtype())
+    {
+        return false;
+    }
+
     jvar = 123;
     if (!jvar.HasValue() || JType::INT != jvar.Subtype() || 123 != jvar.Int)
     {
