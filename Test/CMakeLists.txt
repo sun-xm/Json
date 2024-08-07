@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
 project(Test)
 
+link_libraries(JLib)
+
 add_executable(JStr  ${SRC_CPP} JStr.cpp)
 add_executable(JInt  ${SRC_CPP} JInt.cpp)
 add_executable(JNum  ${SRC_CPP} JNum.cpp)
