@@ -1,6 +1,5 @@
 #pragma once
 
-#include "JType.h"
 #include <cstdint>
 #include <functional>
 #include <initializer_list>
@@ -133,6 +132,57 @@
 #define JFIELD(FIELD)           std::make_pair(std::string(#FIELD), OFFSETOF(_SELF_, FIELD))
 #define JFIELD_KEY(FIELD, KEY)  std::make_pair(std::string(KEY),    OFFSETOF(_SELF_, FIELD))
 #define END_JFIELDS         };
+
+enum class JType
+{
+    INT,
+    NUM,
+    STR,
+    OBJ,
+    ARR,
+    DATE,
+    BOOL,
+    VAR
+};
+
+static std::string to_string(JType type)
+{
+    switch (type)
+    {
+        case JType::INT:
+            return "JType::INT";
+
+        case JType::NUM:
+            return "JType::NUM";
+
+        case JType::STR:
+            return "JType::STR";
+
+        case JType::OBJ:
+            return "JType::OBJ";
+
+        case JType::ARR:
+            return "JType::ARR";
+
+        case JType::DATE:
+            return "JType::DATE";
+
+        case JType::BOOL:
+            return "JType::BOOL";
+
+        case JType::VAR:
+            return "JType::VAR";
+
+        default:
+            return "Unknown type";
+    }
+}
+
+static std::ostream& operator<<(std::ostream& stream, JType type)
+{
+    stream << to_string(type);
+    return stream;
+}
 
 class JField
 {
@@ -750,4 +800,36 @@ public:
     {
         return *this;
     }
+};
+
+class JParser
+{
+public:
+    static void         Serialize(std::ostream& json, const JField& field);
+    static void         Deserialize(std::istream& json, JField& field);
+
+private:
+    static void         GetVal(std::istream& json, const std::string& name, JField* field);
+    static void         GetArr(std::istream& json, const std::string& name, JField* arr);
+    static void         GetObj(std::istream& json, JField* obj);
+    static double       GetFlt(std::istream& json);
+    static double       GetFlt(const std::string& num);
+    static std::string  GetStr(std::istream& json);
+    static std::string  GetNum(std::istream& json);
+    static int64_t      GetInt(std::istream& json);
+    static int64_t      GetInt(const std::string& num);
+    static int64_t      GetInt(const std::string& json, std::string::size_type& off);
+    static std::string  GetName(std::istream& json);
+    static time_t       GetDate(std::istream& json);
+    static bool         GetBool(std::istream& json);
+    static uint64_t     GetUint(std::istream& json);
+    static uint64_t     GetUint(const std::string& json, std::string::size_type& off);
+    static bool         IsFloat(const std::string& num);
+
+    static void GetJson(const std::string& name, const JField& field, std::ostream& json);
+    static void GetJson(const JObject& obj, std::ostream& json);
+    static void GetJson(const JArray& arr, std::ostream& json);
+    static void GetJson(const JDate& date, std::ostream& json);
+    static void GetJson(const JStr& str, std::ostream& json);
+    static void GetJson(const JVar& var, std::ostream& json);
 };
