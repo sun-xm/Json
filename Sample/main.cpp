@@ -10,6 +10,7 @@ using namespace std;
 int main(int argc, char* argv[])
 {
     string e;
+    size_t w;
 
     ifstream json("person.json", ios::binary);
     if (!json.is_open())
@@ -19,40 +20,40 @@ int main(int argc, char* argv[])
     }
 
     Person person;
-    if (person.Deserialize(json, e))
+    if (person.Deserialize(json, e, w))
     {
         cout << person << endl;
         cout << person.Serialize() << endl;
     }
     else
     {
-        cout << JError(json, e) << endl;
+        cout << JError(json, e, w) << endl;
     }
 
     Employee employee;
     json.clear();
     json.seekg(0);
-    if (employee.Deserialize(json, e))
+    if (employee.Deserialize(json, e, w))
     {
         cout << employee << endl;
         cout << employee.Serialize() << endl;
     }
     else
     {
-        cout << JError(json, e) << endl;
+        cout << JError(json, e, w) << endl;
     }
 
     JVar var;
     json.clear();
     json.seekg(0);
-    if (var.Deserialize(json, e))
+    if (var.Deserialize(json, e, w))
     {
         cout << var << endl;
         cout << var["skills"][1] << endl;
     }
     else
     {
-        cout << JError(json, e) << endl;
+        cout << JError(json, e, w) << endl;
     }
 
     return 0;

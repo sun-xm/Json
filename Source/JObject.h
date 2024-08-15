@@ -223,10 +223,10 @@ public:
 
     std::string Serialize() const;
     bool Serialize(std::ostream& json) const;
-    bool Deserialize(const std::string& json);
     bool Deserialize(std::istream& json);
+    bool Deserialize(std::istream& json, std::string& error, std::size_t& where);
+    bool Deserialize(const std::string& json);
     bool Deserialize(const std::string& json, std::string& error, std::size_t& where);
-    bool Deserialize(std::istream& json, std::string& error);
 
 protected:
     bool undef;

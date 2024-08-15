@@ -24,6 +24,43 @@ bool JField::Serialize(ostream& json) const
     return !!json;
 }
 
+bool JField::Deserialize(istream& json)
+{
+    try
+    {
+        JParser::Deserialize(json, *this);
+        return true;
+
+    } catch(const exception&)
+    {
+        this->Clear();
+        return false;
+    }
+}
+
+bool JField::Deserialize(istream& json, string& error, size_t& where)
+{
+    try
+    {
+        where = -1;
+        error.clear();
+        JParser::Deserialize(json, *this);
+        return true;
+
+    } catch(const exception& e)
+    {
+        if (!json)
+        {
+            json.clear();
+            json.seekg(0, ios::end);
+        }
+        where = json.tellg();
+        error = e.what();
+        this->Clear();
+        return false;
+    }
+}
+
 bool JField::Deserialize(const string& json)
 {
     auto stream = istringstream(json);
@@ -40,54 +77,9 @@ bool JField::Deserialize(const string& json)
     }
 }
 
-bool JField::Deserialize(istream& json)
-{
-    try
-    {
-        JParser::Deserialize(json, *this);
-        return true;
-
-    } catch(const exception&)
-    {
-        this->Clear();
-        return false;
-    }
-}
-
 bool JField::Deserialize(const string& json, string& error, size_t& where)
 {
-    auto stream = istringstream(json);
-
-    try
-    {
-        where = -1;
-        error.clear();
-        JParser::Deserialize(stream, *this);
-        return true;
-
-    } catch(const exception& e)
-    {
-        this->Clear();
-        where = stream ? (size_t)stream.tellg() : json.length();
-        error = e.what();
-        return false;
-    }
-}
-
-bool JField::Deserialize(istream& json, string& error)
-{
-    try
-    {
-        error.clear();
-        JParser::Deserialize(json, *this);
-        return true;
-
-    } catch(const exception& e)
-    {
-        this->Clear();
-        error = e.what();
-        return false;
-    }
+    return this->Deserialize((istream&)istringstream(json), error, where);
 }
 
 JUndVar und;

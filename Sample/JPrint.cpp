@@ -4,8 +4,6 @@
 #include <limits>
 #include <sstream>
 
-#define IS_WHITESPACE(c) (' ' == c || '\r' == c || '\n' == c || '\t' == c)
-
 using namespace std;
 
 void Indent(ostream& stream, int indent)
@@ -102,60 +100,16 @@ void JPrint(ostream& stream, const JObject& object, const string& name, int inde
     stream << '}';
 }
 
-string JError(istream& json, const string& error)
+string JError(istream& json, const string& error, size_t where)
 {
-    if (!json)
-    {
-        json.clear();
-        json.seekg(-1, ios::end);
-    }
-
-    if (!json)
-    {
-        return error;
-    }
-
-    auto g = json.tellg();
-    if (g > 0)
-    {
-        json.seekg(-1, ios::cur);
-    }
-
-    for (int i = 0; i < 3 && json.tellg() > 0; i++)
-    {
-        char c;
-
-        while (json.tellg() > 0)
-        {
-            json.read(&c, 1);
-            json.seekg(-2, ios::cur);
-
-            if (IS_WHITESPACE(c))
-            {
-                break;
-            }
-        }
-
-        while (json.tellg() > 0)
-        {
-            json.read(&c, 1);
-            json.seekg(-2, ios::cur);
-
-            if (!IS_WHITESPACE(c))
-            {
-                break;
-            }
-        }
-    }
-
     ostringstream oss;
 
-    while (json.tellg() <= g)
-    {
-        char c;
-        json.read(&c, 1);
-        oss << c;
-    }
+    json.clear();
+    json.seekg(0, ios::end);
+    auto n = min((size_t)json.tellg(), where + 1);
+    json.seekg(0, ios::beg);
+
+    copy_n(istreambuf_iterator<char>(json), n, ostreambuf_iterator<char>(oss));
     oss << "\033[1;31m" << "<--(" << error << ")\033[0m";
 
     return oss.str();
