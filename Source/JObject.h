@@ -371,7 +371,7 @@ public:
     std::vector<T> Value;
 };
 
-template<typename T>
+template<typename T, typename U>
 class JValue : public JField
 {
 public:
@@ -383,15 +383,15 @@ public:
     }
     explicit JValue(std::nullptr_t) : JField(nullptr) {}
 
-    virtual JValue& operator=(const T& value)
+    virtual U& operator=(const T& value)
     {
         this->Value = value;
         this->undef = false;
         this->null  = false;
-        return *this;
+        return (U&)*this;
     }
 
-    virtual JValue& operator=(std::nullptr_t)
+    JValue& operator=(std::nullptr_t) override
     {
         return (JValue&)JField::operator=(nullptr);
     }
@@ -401,7 +401,7 @@ public:
         return this->HasValue() ? this->Value : defVal;
     }
 
-    bool operator==(const JValue<T>& other)
+    bool operator==(const JValue<T, U>& other)
     {
         if (this->undef && other.undef)
         {
@@ -444,16 +444,17 @@ public:
     T Value;
 };
 
-#define JVALUE(C, V, T) C() = default;\
-                        C(V v) : JValue<V>(v){}\
-                        explicit C(std::nullptr_t) : JValue<V>(nullptr){}\
-                        using JValue<V>::operator=;\
-                        JType Type() const override { return JType::T; }
+#define JVALUE(T, U, V) U() = default;\
+                        U(T t) : JValue<T, U>(t) {}\
+                        explicit U(std::nullptr_t) : JValue<T, U>(nullptr) {}\
+                        JType Type() const override { return JType::V; }\
+                        using JValue<T, U>::operator=;\
+                        U& operator=(std::nullptr_t) override { return (U&)JValue<T, U>::operator=(nullptr); }
 
-class JInt : public JValue<int64_t>
+class JInt : public JValue<int64_t, JInt>
 {
 public:
-    JVALUE(JInt, int64_t, INT);
+    JVALUE(int64_t, JInt, INT);
 
     JInt& operator=(int32_t v)
     {
@@ -468,34 +469,34 @@ public:
     }
 };
 
-class JNum : public JValue<double>
+class JNum : public JValue<double, JNum>
 {
 public:
-    JVALUE(JNum, double, NUM);
+    JVALUE(double, JNum, NUM);
 };
 
-class JStr : public JValue<std::string>
+class JStr : public JValue<std::string, JStr>
 {
 public:
-    JVALUE(JStr, std::string, STR);
+    JVALUE(std::string, JStr, STR);
 
     void Clear() override
     {
         this->Value.clear();
-        JValue<std::string>::Clear();
+        JValue<std::string, JStr>::Clear();
     }
 };
 
-class JBool : public JValue<bool>
+class JBool : public JValue<bool, JBool>
 {
 public:
-    JVALUE(JBool, bool, BOOL);
+    JVALUE(bool, JBool, BOOL);
 };
 
-class JDate : public JValue<time_t>
+class JDate : public JValue<time_t, JDate>
 {
 public:
-    JVALUE(JDate, time_t, DATE);
+    JVALUE(time_t, JDate, DATE);
 };
 
 class JObject : public JField
