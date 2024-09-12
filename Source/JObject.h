@@ -15,7 +15,7 @@
                                 }\
                                 bool IsUndefined() const override\
                                 {\
-                                    if (!this->undef)\
+                                    if (!this->und)\
                                     {\
                                         return false;\
                                     }\
@@ -75,7 +75,7 @@
                                 }\
                                 bool IsUndefined() const override\
                                 {\
-                                    if (!this->undef)\
+                                    if (!this->und)\
                                     {\
                                         return false;\
                                     }\
@@ -187,25 +187,25 @@ static std::ostream& operator<<(std::ostream& stream, JType type)
 class JField
 {
 public:
-    JField() : undef(true), null(false) {}
-    JField(std::nullptr_t) : undef(false), null(true) {}
+    JField() : und(true), nul(false) {}
+    JField(std::nullptr_t) : und(false), nul(true) {}
 
     virtual JType Type() const = 0;
 
     virtual void Clear()
     {
-        this->undef = true;
-        this->null  = false;
+        this->und = true;
+        this->nul = false;
     }
 
     virtual bool IsUndefined() const
     {
-        return this->undef;
+        return this->und;
     }
 
     virtual bool IsNull() const
     {
-        return this->null;
+        return this->nul;
     }
 
     virtual bool HasValue() const
@@ -216,8 +216,8 @@ public:
     virtual JField& operator=(std::nullptr_t)
     {
         this->Clear();
-        this->undef = false;
-        this->null  = true;
+        this->und = false;
+        this->nul  = true;
         return *this;
     }
 
@@ -229,8 +229,8 @@ public:
     bool Deserialize(const std::string& json, std::string& error, std::size_t& where);
 
 protected:
-    bool undef;
-    bool null;
+    bool und;
+    bool nul;
 };
 
 class JArray : public JField
@@ -246,8 +246,8 @@ public:
 
     void Define()
     {
-        this->undef = false;
-        this->null  = false;
+        this->und = false;
+        this->nul = false;
     }
 };
 
@@ -265,12 +265,12 @@ public:
 
     bool IsUndefined() const override
     {
-        return this->undef && !this->Length();
+        return this->und && !this->Length();
     }
 
     bool IsNull() const override
     {
-        return this->null && !this->Length();
+        return this->nul && !this->Length();
     }
 
     std::size_t Length() const
@@ -378,16 +378,16 @@ public:
     JValue() = default;
     JValue(const T& value) : Value(value)
     {
-        this->undef = false;
-        this->null  = false;
+        this->und = false;
+        this->nul = false;
     }
     explicit JValue(std::nullptr_t) : JField(nullptr) {}
 
     virtual U& operator=(const T& value)
     {
         this->Value = value;
-        this->undef = false;
-        this->null  = false;
+        this->und = false;
+        this->nul = false;
         return (U&)*this;
     }
 
@@ -403,22 +403,22 @@ public:
 
     bool operator==(const JValue<T, U>& other)
     {
-        if (this->undef && other.undef)
+        if (this->und && other.und)
         {
             return true;
         }
 
-        if (this->undef != other.undef)
+        if (this->und != other.und)
         {
             return false;
         }
 
-        if (this->null && other.null)
+        if (this->nul && other.nul)
         {
             return true;
         }
 
-        if (this->null != other.null)
+        if (this->nul != other.nul)
         {
             return false;
         }
@@ -509,8 +509,8 @@ public:
 
     void Define()
     {
-        this->undef = false;
-        this->null  = false;
+        this->und = false;
+        this->nul = false;
     }
 
     virtual JField* GetField(std::size_t offset) = 0;
@@ -536,8 +536,8 @@ public:
             }
 
             this->subtype = type;
-            this->undef = false;
-            this->null  = false;
+            this->und = false;
+            this->nul = false;
         }
     }
 
@@ -620,9 +620,9 @@ public:
         this->fields.clear();
 
         this->subtype = JType::INT;
-        this->undef = false;
-        this->null  = false;
-        this->Int   = value;
+        this->und = false;
+        this->nul = false;
+        this->Int = value;
 
         return *this;
     }
@@ -638,9 +638,9 @@ public:
         this->fields.clear();
 
         this->subtype = JType::NUM;
-        this->undef = false;
-        this->null  = false;
-        this->Num   = value;
+        this->und = false;
+        this->nul = false;
+        this->Num = value;
 
         return *this;
     }
@@ -656,9 +656,9 @@ public:
         this->fields.clear();
 
         this->subtype = JType::BOOL;
-        this->undef = false;
-        this->null  = false;
-        this->Bool  = value;
+        this->und = false;
+        this->nul = false;
+        this->Bool = value;
 
         return *this;
     }
@@ -668,9 +668,9 @@ public:
         this->fields.clear();
 
         this->subtype = JType::STR;
-        this->undef = false;
-        this->null  = false;
-        this->Str   = value;
+        this->und = false;
+        this->nul = false;
+        this->Str = value;
 
         return *this;
     }
@@ -680,9 +680,9 @@ public:
         this->fields.clear();
 
         this->subtype = JType::STR;
-        this->undef = false;
-        this->null  = false;
-        this->Str   = value;
+        this->und = false;
+        this->nul = false;
+        this->Str = value;
 
         return *this;
     }

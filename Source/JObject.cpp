@@ -82,8 +82,8 @@ bool JField::Deserialize(const string& json, string& error, size_t& where)
     return this->Deserialize((istream&)istringstream(json), error, where);
 }
 
-JUndVar und;
-JUndVar* JVar::UndVar = &und;
+JUndVar undvar;
+JUndVar* JVar::UndVar = &undvar;
 
 JVar* JVar::GetNewItem()
 {
@@ -118,12 +118,12 @@ bool JVar::ToArr(JArray& arr, string& err) const
 {
     arr.Clear();
 
-    if (this->undef)
+    if (this->und)
     {
         return true;
     }
 
-    if (this->null)
+    if (this->nul)
     {
         (JField&)arr = nullptr;
         return true;
@@ -218,12 +218,12 @@ bool JVar::ToObj(JObject& obj, string& err) const
 {
     obj.Clear();
 
-    if (this->undef)
+    if (this->und)
     {
         return true;
     }
 
-    if (this->null)
+    if (this->nul)
     {
         (JField&)obj = nullptr;
         return true;
