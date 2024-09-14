@@ -37,13 +37,13 @@ int main()
     jint = 0;
     if (jint.IsNull())
     {
-        return false;
+        return -1;
     }
 
     jint = nullptr;
     if (!jint.IsNull())
     {
-        return false;
+        return -1;
     }
 
     return 0;

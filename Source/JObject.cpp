@@ -2,6 +2,7 @@
 #include <cassert>
 #include <codecvt>
 #include <iomanip>
+#include <limits>
 #include <sstream>
 
 #define GETFIELD(f, n)  (JType::OBJ == f->Type() ? ((JObject*)f)->GetField(n) : ((JVar*)f)->GetNewField(n))
@@ -10,6 +11,45 @@
 using namespace std;
 
 wstring_convert<codecvt_utf8<wchar_t>> utf8;
+
+inline std::string to_string(JType type)
+{
+    switch (type)
+    {
+        case JType::INT:
+            return "JType::INT";
+
+        case JType::NUM:
+            return "JType::NUM";
+
+        case JType::STR:
+            return "JType::STR";
+
+        case JType::OBJ:
+            return "JType::OBJ";
+
+        case JType::ARR:
+            return "JType::ARR";
+
+        case JType::DATE:
+            return "JType::DATE";
+
+        case JType::BOOL:
+            return "JType::BOOL";
+
+        case JType::VAR:
+            return "JType::VAR";
+
+        default:
+            return "Unknown type";
+    }
+}
+
+inline std::ostream& operator<<(std::ostream& stream, JType type)
+{
+    stream << to_string(type);
+    return stream;
+}
 
 string JField::Serialize() const
 {
@@ -38,6 +78,11 @@ bool JField::Deserialize(istream& json)
     }
 }
 
+bool JField::Deserialize(istream&& json)
+{
+    return this->Deserialize((istream&)json);
+}
+
 bool JField::Deserialize(istream& json, string& error, size_t& where)
 {
     try
@@ -61,6 +106,11 @@ bool JField::Deserialize(istream& json, string& error, size_t& where)
     }
 }
 
+bool JField::Deserialize(istream&& json, string& error, size_t& where)
+{
+    return this->Deserialize((istream&)json, error, where);
+}
+
 bool JField::Deserialize(const string& json)
 {
     auto stream = istringstream(json);
@@ -77,9 +127,19 @@ bool JField::Deserialize(const string& json)
     }
 }
 
+bool JField::Deserialize(string&& json)
+{
+    return this->Deserialize((const string&)json);
+}
+
 bool JField::Deserialize(const string& json, string& error, size_t& where)
 {
-    return this->Deserialize((istream&)istringstream(json), error, where);
+    return this->Deserialize(istringstream(json), error, where);
+}
+
+bool JField::Deserialize(string&& json, string& error, size_t& where)
+{
+    return this->Deserialize(istringstream(json), error, where);
 }
 
 JUndVar undvar;
@@ -1312,7 +1372,7 @@ time_t JParser::GetDate(istream& json)
 
         if ('.' == date[pos])
         {
-            auto milliseconds = GetUint(date, ++pos);
+            GetUint(date, ++pos);
         }
 
         auto time = mktime(&tm);

@@ -382,9 +382,6 @@ bool Compose()
     JVar jvar;
     jvar["int"] = 123;
     jvar["num"] = 1.23;
-
-    JVar& jobj = jvar["obj"];
-    JVar& jstr = jobj["str"];
     jvar["obj"]["str"] = "123";
 
     if (JType::OBJ != jvar.Subtype())

@@ -9,7 +9,7 @@
 
 #define OFFSETOF(t, m)  ((std::size_t)&reinterpret_cast<char const volatile&>(static_cast<JField&>(((t*)0)->m)))
 #define JOBJECT(CLASS)      public:\
-                                CLASS& operator=(std::nullptr_t)\
+                                CLASS& operator=(std::nullptr_t) override\
                                 {\
                                     return (CLASS&)JField::operator=(nullptr);\
                                 }\
@@ -69,7 +69,7 @@
 
 #define JOBJECT_INHERIT(CLASS, BASE)\
                             public:\
-                                CLASS& operator=(std::nullptr_t)\
+                                CLASS& operator=(std::nullptr_t) override\
                                 {\
                                     return (CLASS&)JField::operator=(nullptr);\
                                 }\
@@ -145,45 +145,6 @@ enum class JType
     VAR
 };
 
-static std::string to_string(JType type)
-{
-    switch (type)
-    {
-        case JType::INT:
-            return "JType::INT";
-
-        case JType::NUM:
-            return "JType::NUM";
-
-        case JType::STR:
-            return "JType::STR";
-
-        case JType::OBJ:
-            return "JType::OBJ";
-
-        case JType::ARR:
-            return "JType::ARR";
-
-        case JType::DATE:
-            return "JType::DATE";
-
-        case JType::BOOL:
-            return "JType::BOOL";
-
-        case JType::VAR:
-            return "JType::VAR";
-
-        default:
-            return "Unknown type";
-    }
-}
-
-static std::ostream& operator<<(std::ostream& stream, JType type)
-{
-    stream << to_string(type);
-    return stream;
-}
-
 class JField
 {
 public:
@@ -223,10 +184,14 @@ public:
 
     std::string Serialize() const;
     bool Serialize(std::ostream& json) const;
-    bool Deserialize(std::istream& json);
-    bool Deserialize(std::istream& json, std::string& error, std::size_t& where);
+    bool Deserialize(std::istream&  json);
+    bool Deserialize(std::istream&& json);
+    bool Deserialize(std::istream&  json, std::string& error, std::size_t& where);
+    bool Deserialize(std::istream&& json, std::string& error, std::size_t& where);
     bool Deserialize(const std::string& json);
+    bool Deserialize(std::string&& json);
     bool Deserialize(const std::string& json, std::string& error, std::size_t& where);
+    bool Deserialize(std::string&& json, std::string& error, std::size_t& where);
 
 protected:
     bool und;
@@ -354,7 +319,7 @@ public:
         return this->Value;
     }
 
-    JArr& operator=(std::nullptr_t)
+    JArr& operator=(std::nullptr_t) override
     {
         this->Value.clear();
         JField::operator=(nullptr);
@@ -703,7 +668,7 @@ public:
 
     virtual JVar& operator=(const JField& field);
 
-    virtual JVar& operator=(std::nullptr_t)
+    JVar& operator=(std::nullptr_t) override
     {
         return (JVar&)JField::operator=(nullptr);
     }
