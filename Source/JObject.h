@@ -183,7 +183,8 @@ public:
     }
 
     std::string Serialize() const;
-    bool Serialize(std::ostream& json) const;
+    bool Serialize(std::ostream&  json) const;
+    bool Serialize(std::ostream&& json) const;
     bool Deserialize(std::istream&  json);
     bool Deserialize(std::istream&& json);
     bool Deserialize(std::istream&  json, std::string& error, std::size_t& where);

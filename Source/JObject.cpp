@@ -64,6 +64,11 @@ bool JField::Serialize(ostream& json) const
     return !!json;
 }
 
+bool JField::Serialize(ostream&& json) const
+{
+    return this->Serialize((ostream&)json);
+}
+
 bool JField::Deserialize(istream& json)
 {
     try
