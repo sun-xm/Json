@@ -1517,7 +1517,7 @@ void JParser::GetJson(const JObject& obj, ostream& json)
     json << '{';
 
     bool first = true;
-    obj.ForEach([&](const string& name, const JField& field)
+    obj.ForEachConst([&](const string& name, const JField& field)
     {
         if (field.IsUndefined())
         {
