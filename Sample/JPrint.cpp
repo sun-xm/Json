@@ -94,6 +94,7 @@ void JPrint(ostream& stream, const JObject& object, const string& name, int inde
     {
         JPrint(stream, field, name, indent + 1);
         stream << ',' << endl;
+        return false;
     });
 
     Indent(stream, indent);

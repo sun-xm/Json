@@ -43,49 +43,65 @@
                                     }\
                                     return nullptr;\
                                 }\
-                                void ForEachConst(const std::function<void(const std::string& name, const JField& field)>& cb) const override\
+                                bool ForEach(const std::function<bool(const std::string& name, const JField& field)>& cb) const override\
                                 {\
                                     if (cb)\
                                     {\
                                         for (auto& pair : FieldOffsets)\
                                         {\
-                                            auto& field = *(JField*)((char*)(this) + pair.second);\
-                                            cb(pair.first, field);\
+                                            const auto& field = *(const JField*)((char*)(this) + pair.second);\
+                                            if (cb(pair.first, field))\
+                                            {\
+                                                return true;\
+                                            }\
                                         }\
                                     }\
+                                    return false;\
                                 }\
-                                void ForEachConst(const std::function<void(const std::string& name, const JField& field, void* param)>& cb, void* param) const override\
+                                bool ForEach(const std::function<bool(const std::string& name, const JField& field, void* param)>& cb, void* param) const override\
                                 {\
                                     if (cb)\
                                     {\
                                         for (auto& pair : FieldOffsets)\
                                         {\
-                                            auto& field = *(JField*)((char*)(this) + pair.second);\
-                                            cb(pair.first, field, param);\
+                                            const auto& field = *(const JField*)((char*)(this) + pair.second);\
+                                            if (cb(pair.first, field, param))\
+                                            {\
+                                                return true;\
+                                            }\
                                         }\
                                     }\
+                                    return false;\
                                 }\
-                                void ForEach(const std::function<void(const std::string& name, JField& field)>& cb) override\
+                                bool ForEach(const std::function<bool(const std::string& name, JField& field)>& cb) override\
                                 {\
                                     if (cb)\
                                     {\
                                         for (auto& pair : FieldOffsets)\
                                         {\
                                             auto& field = *(JField*)((char*)(this) + pair.second);\
-                                            cb(pair.first, field);\
+                                            if (cb(pair.first, field))\
+                                            {\
+                                                return true;\
+                                            }\
                                         }\
                                     }\
+                                    return false;\
                                 }\
-                                void ForEach(const std::function<void(const std::string& name, JField& field, void* param)>& cb, void* param) override\
+                                bool ForEach(const std::function<bool(const std::string& name, JField& field, void* param)>& cb, void* param) override\
                                 {\
                                     if (cb)\
                                     {\
                                         for (auto& pair : FieldOffsets)\
                                         {\
                                             auto& field = *(JField*)((char*)(this) + pair.second);\
-                                            cb(pair.first, field, param);\
+                                            if (cb(pair.first, field, param))\
+                                            {\
+                                                return true;\
+                                            }\
                                         }\
                                     }\
+                                    return false;\
                                 }\
                                 void Clear() override\
                                 {\
@@ -136,53 +152,81 @@
                                     }\
                                     return BASE::GetField(name);\
                                 }\
-                                void ForEachConst(const std::function<void(const std::string& name, const JField& field)>& cb) const override\
+                                bool ForEach(const std::function<bool(const std::string& name, const JField& field)>& cb) const override\
                                 {\
                                     if (cb)\
                                     {\
                                         for (auto& pair : FieldOffsets)\
                                         {\
-                                            auto& field = *(JField*)((char*)(this) + pair.second);\
-                                            cb(pair.first, field);\
+                                            const auto& field = *(const JField*)((char*)(this) + pair.second);\
+                                            if (cb(pair.first, field))\
+                                            {\
+                                                return true;\
+                                            }\
                                         }\
-                                        BASE::ForEach(cb);\
+                                        if (BASE::ForEach(cb))\
+                                        {\
+                                            return true;\
+                                        }\
                                     }\
+                                    return false;\
                                 }\
-                                void ForEachConst(const std::function<void(const std::string& name, const JField& field, void* param)>& cb, void* param) const override\
+                                bool ForEach(const std::function<bool(const std::string& name, const JField& field, void* param)>& cb, void* param) const override\
                                 {\
                                     if (cb)\
                                     {\
                                         for (auto& pair : FieldOffsets)\
                                         {\
-                                            auto& field = *(JField*)((char*)(this) + pair.second);\
-                                            cb(pair.first, field, param);\
+                                            const auto& field = *(const JField*)((char*)(this) + pair.second);\
+                                            if (cb(pair.first, field, param))\
+                                            {\
+                                                return true;\
+                                            }\
                                         }\
-                                        BASE::ForEach(cb);\
+                                        if (BASE::ForEach(cb, param))\
+                                        {\
+                                            return true;\
+                                        }\
                                     }\
+                                    return false;\
                                 }\
-                                void ForEach(const std::function<void(const std::string& name, JField& field)>& cb) override\
+                                bool ForEach(const std::function<bool(const std::string& name, JField& field)>& cb) override\
                                 {\
                                     if (cb)\
                                     {\
                                         for (auto& pair : FieldOffsets)\
                                         {\
                                             auto& field = *(JField*)((char*)(this) + pair.second);\
-                                            cb(pair.first, field);\
+                                            if (cb(pair.first, field))\
+                                            {\
+                                                return true;\
+                                            }\
                                         }\
-                                        BASE::ForEach(cb);\
+                                        if (BASE::ForEach(cb))\
+                                        {\
+                                            return true;\
+                                        }\
                                     }\
+                                    return false;\
                                 }\
-                                void ForEach(const std::function<void(const std::string& name, JField& field, void* param)>& cb, void* param) override\
+                                bool ForEach(const std::function<bool(const std::string& name, JField& field, void* param)>& cb, void* param) override\
                                 {\
                                     if (cb)\
                                     {\
                                         for (auto& pair : FieldOffsets)\
                                         {\
                                             auto& field = *(JField*)((char*)(this) + pair.second);\
-                                            cb(pair.first, field, param);\
+                                            if (cb(pair.first, field, param))\
+                                            {\
+                                                return true;\
+                                            }\
                                         }\
-                                        BASE::ForEach(cb);\
+                                        if (BASE::ForEach(cb, param))\
+                                        {\
+                                            return true;\
+                                        }\
                                     }\
+                                    return false;\
                                 }\
                                 void Clear() override\
                                 {\
@@ -550,10 +594,12 @@ public:
 
     virtual JField* GetField(std::size_t offset) = 0;
     virtual JField* GetField(const std::string&) = 0;
-    virtual void ForEachConst(const std::function<void(const std::string& name, const JField& field)>& cb) const = 0;
-    virtual void ForEachConst(const std::function<void(const std::string& name, const JField& field, void* param)>& cb, void*) const = 0;
-    virtual void ForEach(const std::function<void(const std::string& name, JField& field)>& cb) = 0;
-    virtual void ForEach(const std::function<void(const std::string& name, JField& field, void* param)>& cb, void*) = 0;
+
+    // ForEach() stops and returns true if any callback returns true.
+    virtual bool ForEach(const std::function<bool(const std::string& name, const JField& field)>& cb) const = 0;
+    virtual bool ForEach(const std::function<bool(const std::string& name, const JField& field, void*)>& cb, void*) const = 0;
+    virtual bool ForEach(const std::function<bool(const std::string& name, JField& field)>& cb) = 0;
+    virtual bool ForEach(const std::function<bool(const std::string& name, JField& field, void*)>& cb, void*) = 0;
 };
 
 class JUndVar;
@@ -607,26 +653,97 @@ public:
         return this->fields.end() != this->fields.find(name);
     }
 
-    void ForEachField(const std::function<void(const std::string& name, const JVar& var)>& cb) const
+    // ForEachField()/ForEachItem() stops and returns true if any callback returns true
+    bool ForEachField(const std::function<bool(const std::string& name, const JVar& var)>& cb) const
     {
         if (JType::OBJ == this->subtype && cb)
         {
             for (auto& pair : this->fields)
             {
-                cb(pair.first, pair.second);
+                if (cb(pair.first, pair.second))
+                {
+                    return true;
+                }
             }
         }
+
+        return false;
+    }
+    bool ForEachField(const std::function<bool(const std::string& name, const JVar& var, void* param)>& cb, void* param) const
+    {
+        if (JType::OBJ == this->subtype && cb)
+        {
+            for (auto& pair : this->fields)
+            {
+                if (cb(pair.first, pair.second, param))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+    bool ForEachField(const std::function<bool(const std::string& name, JVar& var)>& cb)
+    {
+        if (JType::OBJ == this->subtype && cb)
+        {
+            for (auto& pair : this->fields)
+            {
+                if (cb(pair.first, pair.second))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+    bool ForEachField(const std::function<bool(const std::string& name, JVar& var, void* param)>& cb, void* param)
+    {
+        if (JType::OBJ == this->subtype && cb)
+        {
+            for (auto& pair : this->fields)
+            {
+                if (cb(pair.first, pair.second, param))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
-    void ForEachItem(const std::function<void(const JVar& var)>& cb) const
+    bool ForEachItem(const std::function<bool(const JVar& var)>& cb) const
     {
         if (JType::ARR == this->subtype && cb)
         {
             for (std::size_t i = 0; i < this->fields.size(); i++)
             {
-                cb((*this)[i]);
+                if (cb((*this)[i]))
+                {
+                    return true;
+                }
             }
         }
+
+        return false;
+    }
+    bool ForEachItem(const std::function<bool(JVar& var)>& cb)
+    {
+        if (JType::ARR == this->subtype && cb)
+        {
+            for (std::size_t i = 0; i < this->fields.size(); i++)
+            {
+                if (cb((*this)[i]))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     virtual JVar* GetNewItem();

@@ -211,7 +211,7 @@ bool JVar::ToArr(JArray& arr, string& err) const
             if (var.IsNull())
             {
                 *item = nullptr;
-                return;
+                return false;
             }
 
             if (JType::VAR == item->Type())
@@ -269,6 +269,8 @@ bool JVar::ToArr(JArray& arr, string& err) const
             {
                 throw runtime_error("Type mismatch. Expecting: " + to_string(item->Type()) + ". Actual: " + to_string(var.Subtype()));
             }
+
+            return false;
         });
     } catch (const exception& e)
     {
@@ -308,19 +310,19 @@ bool JVar::ToObj(JObject& obj, string& err) const
         {
             if (var.IsUndefined())
             {
-                return;
+                return false;
             }
 
             auto field = obj.GetField(name);
             if (!field)
             {
-                return;
+                return false;
             }
 
             if (var.IsNull())
             {
                 *field = nullptr;
-                return;
+                return false;
             }
 
             if (JType::VAR == field->Type())
@@ -378,6 +380,8 @@ bool JVar::ToObj(JObject& obj, string& err) const
             {
                 throw runtime_error("Type mismatch: " + name + ". Expecting: " + to_string(field->Type()) + ". Actual: " + to_string(var.Subtype()));
             }
+
+            return false;
         });
     } catch (const exception& e)
     {
@@ -511,6 +515,7 @@ JVar& JVar::operator=(const JField& field)
             {
                 auto f = this->GetNewField(name);
                 *f = field;
+                return false;
             });
 
             break;
@@ -1521,7 +1526,7 @@ void JParser::GetJson(const JObject& obj, ostream& json)
     {
         if (field.IsUndefined())
         {
-            return;
+            return false;
         }
 
         if (!first)
@@ -1531,6 +1536,8 @@ void JParser::GetJson(const JObject& obj, ostream& json)
         first = false;
 
         GetJson(name, field, json);
+
+        return false;
     });
 
     json << '}';
@@ -1668,7 +1675,7 @@ void JParser::GetJson(const JVar& var, ostream& json)
             {
                 if (var.IsUndefined())
                 {
-                    return;
+                    return false;
                 }
 
                 if (!first)
@@ -1678,6 +1685,8 @@ void JParser::GetJson(const JVar& var, ostream& json)
                 first = false;
 
                 GetJson(name, var, json);
+
+                return false;
             });
 
             json << '}';
@@ -1698,6 +1707,8 @@ void JParser::GetJson(const JVar& var, ostream& json)
                 first = false;
 
                 GetJson("", var, json);
+
+                return false;
             });
 
             json << ']';
