@@ -341,6 +341,12 @@ class JArr : public JArray
     static_assert(std::is_base_of<JField, T>::value, "T must inherit from JField");
 
 public:
+    JArr() {}
+    JArr(const std::initializer_list<T>& list)
+    {
+        *this = list;
+    }
+
     void Clear() override
     {
         this->Value.clear();
