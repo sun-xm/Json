@@ -282,6 +282,11 @@ public:
         return this->nul;
     }
 
+    virtual bool IsObj() const
+    {
+        return false;
+    }
+
     virtual bool HasValue() const
     {
         return !(this->IsNull() || this->IsUndefined());
@@ -586,6 +591,11 @@ public:
         return JType::OBJ;
     }
 
+    bool IsObj() const override
+    {
+        return true;
+    }
+
     void Define()
     {
         this->und = false;
@@ -636,6 +646,11 @@ public:
     JType Type() const override
     {
         return JType::VAR;
+    }
+
+    bool IsObj() const override
+    {
+        return JType::OBJ == this->subtype;
     }
 
     virtual JType Subtype() const
