@@ -344,7 +344,8 @@ public:
     JArr() {}
     JArr(const std::initializer_list<T>& list)
     {
-        *this = list;
+        this->Value = list;
+        this->Define();
     }
 
     void Clear() override
@@ -378,12 +379,6 @@ public:
     {
         auto itr = this->Value.begin() + (before > this->Value.size() ? this->Value.size() : before);
         this->Value.insert(itr, values.Value.begin(), values.Value.end());
-    }
-
-    void Insert(const std::initializer_list<T>& list, std::size_t before)
-    {
-        auto itr = this->Value.begin() + (before > this->Value.size() ? this->Value.size() : before);
-        this->Value.insert(itr, list);
     }
 
     void Push(const T& value)
@@ -453,13 +448,6 @@ public:
     {
         this->Value.clear();
         JField::operator=(nullptr);
-        return *this;
-    }
-
-    JArr& operator=(const std::initializer_list<T>& list)
-    {
-        this->Value = list;
-        this->Define();
         return *this;
     }
 
