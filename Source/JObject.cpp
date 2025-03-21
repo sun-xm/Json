@@ -150,35 +150,6 @@ bool JField::Deserialize(string&& json, string& error, size_t& where)
 JUndVar undvar;
 JUndVar* JVar::UndVar = &undvar;
 
-JVar* JVar::GetNewItem()
-{
-    if (JType::ARR != this->subtype)
-    {
-        this->fields.clear();
-        this->Define(JType::ARR);
-    }
-
-    auto name = to_string(this->fields.size());
-    return &(this->fields[name] = JVar());
-}
-
-JVar* JVar::GetNewField(const string& name)
-{
-    if (JType::OBJ != this->subtype)
-    {
-        this->fields.clear();
-        this->Define(JType::OBJ);
-    }
-
-    auto itr = this->fields.find(name);
-    if (this->fields.end() != itr)
-    {
-        return &itr->second;
-    }
-
-    return &(this->fields[name] = JVar());
-}
-
 bool JVar::ToArr(JArray& arr, string& err) const
 {
     arr.Clear();
@@ -390,61 +361,6 @@ bool JVar::ToObj(JObject& obj, string& err) const
     }
 
     return true;
-}
-
-JVar& JVar::operator[](size_t index)
-{
-    if (JType::ARR != this->Subtype())
-    {
-        throw out_of_range("Is not an array");
-    }
-
-    if (index >= this->fields.size())
-    {
-        throw out_of_range("Index is out of range");
-    }
-
-    return this->fields.find(to_string(index))->second;
-}
-
-const JVar& JVar::operator[](size_t index) const
-{
-    if (JType::ARR != this->Subtype())
-    {
-        throw out_of_range("Is not an array");
-    }
-
-    if (index >= this->fields.size())
-    {
-        throw out_of_range("Index is out of range");
-    }
-
-    return this->fields.find(to_string(index))->second;
-}
-
-JVar& JVar::operator[](const string& field)
-{
-    if (JType::OBJ != this->Subtype() && JType::VAR != this->Subtype())
-    {
-        throw runtime_error("Is not an object");
-    }
-
-    return *this->GetNewField(field);
-}
-
-const JVar& JVar::operator[](const string& field) const
-{
-    if (JType::OBJ != this->Subtype())
-    {
-        throw runtime_error("Is not an object");
-    }
-
-    if (!this->HasValue() || !this->HasField(field))
-    {
-        return (JVar&)*UndVar;
-    }
-
-    return this->fields.find(field)->second;
 }
 
 JVar& JVar::operator=(const JField& field)

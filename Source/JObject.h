@@ -29,17 +29,23 @@
                                     }\
                                     return true;\
                                 }\
-                                JField* GetField(std::size_t offset) override\
-                                {\
-                                    return (JField*)((char*)this + offset);\
-                                }\
                                 JField* GetField(const std::string& name) override\
                                 {\
                                     std::map<std::string, std::size_t>::const_iterator itr;\
                                     itr = FieldOffsets.find(name);\
                                     if(itr != FieldOffsets.end())\
                                     {\
-                                        return this->GetField(itr->second);\
+                                        return JObject::GetField(this, itr->second);\
+                                    }\
+                                    return nullptr;\
+                                }\
+                                const JField* GetField(const std::string& name) const override\
+                                {\
+                                    std::map<std::string, std::size_t>::const_iterator itr;\
+                                    itr = FieldOffsets.find(name);\
+                                    if(itr != FieldOffsets.end())\
+                                    {\
+                                        return JObject::GetField(this, itr->second);\
                                     }\
                                     return nullptr;\
                                 }\
@@ -138,17 +144,23 @@
                                     }\
                                     return BASE::IsUndefined();\
                                 }\
-                                JField* GetField(std::size_t offset) override\
-                                {\
-                                    return (JField*)((char*)this + offset);\
-                                }\
                                 JField* GetField(const std::string& name) override\
                                 {\
                                     std::map<std::string, std::size_t>::const_iterator itr;\
                                     itr = FieldOffsets.find(name);\
                                     if(itr != FieldOffsets.end())\
                                     {\
-                                        return this->GetField(itr->second);\
+                                        return JObject::GetField(this, itr->second);\
+                                    }\
+                                    return BASE::GetField(name);\
+                                }\
+                                const JField* GetField(const std::string& name) const override\
+                                {\
+                                    std::map<std::string, std::size_t>::const_iterator itr;\
+                                    itr = FieldOffsets.find(name);\
+                                    if(itr != FieldOffsets.end())\
+                                    {\
+                                        return JObject::GetField(this, itr->second);\
                                     }\
                                     return BASE::GetField(name);\
                                 }\
@@ -606,14 +618,24 @@ public:
         this->nul = false;
     }
 
-    virtual JField* GetField(std::size_t offset) = 0;
     virtual JField* GetField(const std::string&) = 0;
+    virtual const JField* GetField(const std::string&) const = 0;
 
     // ForEach() stops and returns true if any callback returns true.
     virtual bool ForEach(const std::function<bool(const std::string& name, const JField& field)>& cb) const = 0;
     virtual bool ForEach(const std::function<bool(const std::string& name, const JField& field, void*)>& cb, void*) const = 0;
     virtual bool ForEach(const std::function<bool(const std::string& name, JField& field)>& cb) = 0;
     virtual bool ForEach(const std::function<bool(const std::string& name, JField& field, void*)>& cb, void*) = 0;
+
+protected:
+    static JField* GetField(JObject* object, std::size_t offset)
+    {
+        return (JField*)((char*)object + offset);
+    }
+    static const JField* GetField(const JObject* object, std::size_t offset)
+    {
+        return (const JField*)((char*)object + offset);
+    }
 };
 
 class JUndVar;
@@ -765,8 +787,33 @@ public:
         return false;
     }
 
-    virtual JVar* GetNewItem();
-    virtual JVar* GetNewField(const std::string& name);
+    virtual JVar* GetNewItem()
+    {
+        if (JType::ARR != this->subtype)
+        {
+            this->fields.clear();
+            this->Define(JType::ARR);
+        }
+
+        auto name = std::to_string(this->fields.size());
+        return &(this->fields[name] = JVar());
+    }
+    virtual JVar* GetNewField(const std::string& name)
+    {
+        if (JType::OBJ != this->subtype)
+        {
+            this->fields.clear();
+            this->Define(JType::OBJ);
+        }
+
+        auto itr = this->fields.find(name);
+        if (this->fields.end() != itr)
+        {
+            return &itr->second;
+        }
+
+        return &(this->fields[name] = JVar());
+    }
 
     bool ToArr(JArray& arr, std::string& err) const;
     bool ToObj(JObject& obj, std::string& err) const;
@@ -783,10 +830,57 @@ public:
         return this->ToObj(obj, err);
     }
 
-    JVar& operator[](std::size_t index);
-    const JVar& operator[](std::size_t index) const;
-    JVar& operator[](const std::string& field);
-    const JVar& operator[](const std::string& field) const;
+    JVar& operator[](std::size_t index)
+    {
+        if (JType::ARR != this->Subtype())
+        {
+            throw std::out_of_range("Is not an array");
+        }
+
+        if (index >= this->fields.size())
+        {
+            throw std::out_of_range("Index is out of range");
+        }
+
+        return this->fields.find(std::to_string(index))->second;
+    }
+    const JVar& operator[](std::size_t index) const
+    {
+        if (JType::ARR != this->Subtype())
+        {
+            throw std::out_of_range("Is not an array");
+        }
+
+        if (index >= this->fields.size())
+        {
+            throw std::out_of_range("Index is out of range");
+        }
+
+        return this->fields.find(std::to_string(index))->second;
+    }
+    JVar& operator[](const std::string& field)
+    {
+        if (JType::OBJ != this->Subtype() && JType::VAR != this->Subtype())
+        {
+            throw std::runtime_error("Is not an object");
+        }
+
+        return *this->GetNewField(field);
+    }
+    const JVar& operator[](const std::string& field) const
+    {
+        if (JType::OBJ != this->Subtype())
+        {
+            throw std::runtime_error("Is not an object");
+        }
+
+        if (!this->HasValue() || !this->HasField(field))
+        {
+            return (JVar&)*UndVar;
+        }
+
+        return this->fields.find(field)->second;
+    }
 
     virtual JVar& operator=(int64_t value)
     {
