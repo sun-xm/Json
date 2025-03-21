@@ -68,6 +68,7 @@ void JPrint(ostream& stream, const JArray& arr, const string& name, int indent)
     {
         JPrint(stream, field, "", indent + 1);
         stream << ',' << endl;
+        return false;
     });
 
     Indent(stream, indent);

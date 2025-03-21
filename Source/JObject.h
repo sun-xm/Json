@@ -321,7 +321,7 @@ class JArray : public JField
 {
 public:
     virtual JField* GetNew() = 0;
-    virtual void ForEach(const std::function<void(const JField& field)>& cb) const = 0;
+    virtual bool ForEach(const std::function<bool(const JField& field)>& cb) const = 0;
 
     JType Type() const override
     {
@@ -397,26 +397,31 @@ public:
         return &this->Value.back();
     }
 
-    void ForEach(const std::function<void(const JField& field)>& cb) const override
+    bool ForEach(const std::function<bool(const JField& field)>& cb) const override
     {
         if (cb)
         {
             for (auto& field : this->Value)
             {
-                cb(field);
+                if (cb(field))
+                {
+                    return true;
+                }
             }
         }
+        return false;
     }
 
     void ForEachItem(const std::function<void(const T& item)>& cb) const
     {
         if (cb)
         {
-            this->ForEach([&](const JField& field)
+            return this->ForEach([&](const JField& field)
             {
-                cb((const T&)field);
+                return cb((const T&)field);
             });
         }
+        return false;
     }
 
     const std::vector<T>& ValueOrDefault(const std::vector<T>& defVal) const

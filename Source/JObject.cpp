@@ -502,6 +502,7 @@ JVar& JVar::operator=(const JField& field)
             {
                 auto item = this->GetNewItem();
                 *item = field;
+                return false;
             });
 
             break;
@@ -1557,6 +1558,8 @@ void JParser::GetJson(const JArray& arr, ostream& json)
         first = false;
 
         GetJson("", field, json);
+
+        return false;
     });
 
     json << ']';
