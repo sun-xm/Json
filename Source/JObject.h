@@ -424,7 +424,7 @@ public:
         return false;
     }
 
-    void ForEachItem(const std::function<void(const T& item)>& cb) const
+    bool ForEachItem(const std::function<void(const T& item)>& cb) const
     {
         if (cb)
         {
