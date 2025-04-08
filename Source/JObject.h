@@ -638,8 +638,6 @@ protected:
     }
 };
 
-class JUndVar;
-
 class JVar : public JField
 {
 public:
@@ -876,7 +874,7 @@ public:
 
         if (!this->HasValue() || !this->HasField(field))
         {
-            return (JVar&)*UndVar;
+            return UndVar;
         }
 
         return this->fields.find(field)->second;
@@ -988,87 +986,7 @@ public:
 protected:
     JType subtype;
     std::map<std::string, JVar> fields;
-
-    static JUndVar* UndVar;
-};
-
-class JUndVar : public JVar
-{
-public:
-    bool IsUndefined() const override
-    {
-        return true;
-    }
-
-    bool IsNull() const override
-    {
-        return false;
-    }
-
-    bool HasField(const std::string&) const override
-    {
-        return false;
-    }
-
-    JType Subtype() const override
-    {
-        return JType::VAR;
-    }
-
-    std::size_t Size() const override
-    {
-        return 0;
-    }
-
-    JVar* GetNewField(const std::string& name) override
-    {
-        return nullptr;
-    }
-
-    JVar* GetNewItem() override
-    {
-        return nullptr;
-    }
-
-    JVar& operator=(int64_t) override
-    {
-        return *this;
-    }
-
-    JVar& operator=(int32_t) override
-    {
-        return *this;
-    }
-
-    JVar& operator=(double) override
-    {
-        return *this;
-    }
-
-    JVar& operator=(float) override
-    {
-        return *this;
-    }
-
-    JVar& operator=(bool) override
-    {
-        return *this;
-    }
-
-    JVar& operator=(const std::string&) override
-    {
-        return *this;
-    }
-
-    JVar& operator=(const JField& field) override
-    {
-        return *this;
-    }
-
-    JVar& operator=(std::nullptr_t) override
-    {
-        return *this;
-    }
+    static const JVar UndVar;
 };
 
 class JParser

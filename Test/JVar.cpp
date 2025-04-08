@@ -439,21 +439,5 @@ int main()
         return -1;
     }
 
-    JUndVar juv;
-    if (!juv.Deserialize("123") || juv.HasValue())
-    {
-        return -1;
-    }
-
-    if (!juv.Deserialize("{\"n\":123}") || juv.HasValue())
-    {
-        return -1;
-    }
-
-    if (!juv.Deserialize("[1, 2, 3]") || juv.HasValue())
-    {
-        return -1;
-    }
-
     return 0;
 }

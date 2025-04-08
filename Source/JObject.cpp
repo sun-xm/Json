@@ -147,9 +147,6 @@ bool JField::Deserialize(string&& json, string& error, size_t& where)
     return this->Deserialize(istringstream(json), error, where);
 }
 
-JUndVar undvar;
-JUndVar* JVar::UndVar = &undvar;
-
 bool JVar::ToArr(JArray& arr, string& err) const
 {
     arr.Clear();
