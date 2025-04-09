@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <cstdint>
 #include <functional>
 #include <initializer_list>
@@ -394,6 +395,26 @@ public:
     void Unshift(const T& value)
     {
         this->Value.insert(this->Value.begin(), value);
+    }
+
+    void RemoveAt(size_t index)
+    {
+        if (index < this->Value.size())
+        {
+            this->Value.erase(this->Value.begin() + index);
+        }
+    }
+
+    void RemoveIf(const std::function<bool(size_t index, const T& value)>& pred)
+    {
+        if (pred)
+        {
+            size_t index = 0;
+            this->Value.erase(std::remove_if(this->Value.begin(), this->Value.end(), [&index, &pred](const T& value)
+            {
+                return pred(index++, value);
+            }));
+        }
     }
 
     T* GetNew() override // Caution: Returned pointer may become invalid after subsequent call due to reallocation.

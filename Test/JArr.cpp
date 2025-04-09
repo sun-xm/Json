@@ -84,5 +84,21 @@ int main()
         return -1;
     }
 
+    jarr = { 0, 1, 2, 3 };
+    jarr.RemoveAt(0);
+    if (3 != jarr.Length() || 1 != jarr[0])
+    {
+        return -1;
+    }
+
+    jarr.RemoveIf([](size_t index, const JInt& value)
+    {
+        return 1 == index && 2 == value;
+    });
+    if (2 != jarr.Length() || 3 != jarr[1])
+    {
+        return -1;
+    }
+
     return 0;
 }
