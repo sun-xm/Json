@@ -374,50 +374,26 @@ public:
         return this->Value.size();
     }
 
-    bool Insert(const T& value, std::size_t before)
+    void Insert(const T& value, std::size_t before)
     {
-        if (((JField&)value).IsUndefined())
-        {
-            return false;
-        }
-
         auto itr = this->Value.begin() + (before > this->Value.size() ? this->Value.size() : before);
         this->Value.insert(itr, value);
-        return true;
     }
 
-    bool Insert(const JArr<T>& values, std::size_t before)
+    void Insert(const JArr<T>& values, std::size_t before)
     {
-        if (values.ForEach([](const JField& field){ return field.IsUndefined(); }))
-        {
-            return false;
-        }
-
         auto itr = this->Value.begin() + (before > this->Value.size() ? this->Value.size() : before);
         this->Value.insert(itr, values.Value.begin(), values.Value.end());
-        return true;
     }
 
-    bool Push(const T& value)
+    void Push(const T& value)
     {
-        if (((JField&)value).IsUndefined())
-        {
-            return false;
-        }
-
         this->Value.push_back(value);
-        return true;
     }
 
-    bool Unshift(const T& value)
+    void Unshift(const T& value)
     {
-        if (((JField&)value).IsUndefined())
-        {
-            return false;
-        }
-
         this->Value.insert(this->Value.begin(), value);
-        return true;
     }
 
     T* GetNew() override // Caution: Returned pointer may become invalid after subsequent call due to reallocation.
