@@ -151,12 +151,12 @@ bool JVar::ToArr(JArray& arr, string& err) const
 {
     arr.Clear();
 
-    if (this->und)
+    if (this->IsUndefined())
     {
         return true;
     }
 
-    if (this->nul)
+    if (this->IsNull())
     {
         (JField&)arr = nullptr;
         return true;
@@ -253,12 +253,12 @@ bool JVar::ToObj(JObject& obj, string& err) const
 {
     obj.Clear();
 
-    if (this->und)
+    if (this->IsUndefined())
     {
         return true;
     }
 
-    if (this->nul)
+    if (this->IsNull())
     {
         (JField&)obj = nullptr;
         return true;
@@ -269,8 +269,6 @@ bool JVar::ToObj(JObject& obj, string& err) const
         err = "This is not an object";
         return false;
     }
-
-    // obj.Define();
 
     try
     {
@@ -409,8 +407,6 @@ JVar& JVar::operator=(const JField& field)
 
         case JType::ARR:
         {
-            this->Define(JType::ARR);
-
             ((JArray&)field).ForEach([this](const JField& field)
             {
                 auto item = this->GetNewItem();
@@ -423,8 +419,6 @@ JVar& JVar::operator=(const JField& field)
 
         case JType::OBJ:
         {
-            this->Define(JType::OBJ);
-
             ((JObject&)field).ForEach([this](const string& name, const JField& field)
             {
                 auto f = this->GetNewField(name);
@@ -706,7 +700,7 @@ void JParser::GetArr(istream& json, const string& name, JField* arr)
         }
         else
         {
-            ((JVar*)arr)->Define(JType::ARR);
+            ((JVar*)arr)->Subtype(JType::ARR);
         }
     }
 
@@ -741,16 +735,9 @@ void JParser::GetArr(istream& json, const string& name, JField* arr)
 
 void JParser::GetObj(istream& json, JField* obj)
 {
-    if (obj)
+    if (obj && JType::VAR == obj->Type())
     {
-        if (JType::OBJ == obj->Type())
-        {
-            // ((JObject*)obj)->Define();
-        }
-        else
-        {
-            ((JVar*)obj)->Define(JType::OBJ);
-        }
+        ((JVar*)obj)->Subtype(JType::OBJ);
     }
 
     auto c = FirstNotSpace(json);
@@ -778,14 +765,8 @@ void JParser::GetObj(istream& json, JField* obj)
                 switch (f->Type())
                 {
                     case JType::OBJ:
-                    {
-                        // ((JObject*)f)->Define();
-                        break;
-                    }
-
                     case JType::VAR:
                     {
-                        ((JVar*)f)->Define(JType::OBJ);
                         break;
                     }
 

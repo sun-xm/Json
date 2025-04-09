@@ -637,19 +637,28 @@ class JVar : public JField
 public:
     JVar() : subtype(JType::VAR) {}
 
-    void Define(JType type)
+    bool IsUndefined() const override
     {
-        if (JType::ARR == type || JType::OBJ == type)
+        if (this->nul)
         {
-            if (this->subtype != type)
+            return false;
+        }
+        else if (JType::ARR == this->subtype ||
+                 JType::OBJ == this->subtype)
+        {
+            for (auto& var : this->fields)
             {
-                this->fields.clear();
-                this->Str.clear();
+                if (!var.second.IsUndefined())
+                {
+                    return false;
+                }
             }
 
-            this->subtype = type;
-            this->und = false;
-            this->nul = false;
+            return true;
+        }
+        else
+        {
+            return this->und;
         }
     }
 
@@ -669,6 +678,15 @@ public:
     bool IsObj() const override
     {
         return JType::OBJ == this->subtype;
+    }
+
+    virtual void Subtype(JType subtype)
+    {
+        if (this->subtype != subtype)
+        {
+            this->Clear();
+        }
+        this->subtype = subtype;
     }
 
     virtual JType Subtype() const
@@ -781,22 +799,14 @@ public:
 
     virtual JVar* GetNewItem()
     {
-        if (JType::ARR != this->subtype)
-        {
-            this->fields.clear();
-            this->Define(JType::ARR);
-        }
+        this->Subtype(JType::ARR);
 
         auto name = std::to_string(this->fields.size());
         return &(this->fields[name] = JVar());
     }
     virtual JVar* GetNewField(const std::string& name)
     {
-        if (JType::OBJ != this->subtype)
-        {
-            this->fields.clear();
-            this->Define(JType::OBJ);
-        }
+        this->Subtype(JType::OBJ);
 
         auto itr = this->fields.find(name);
         if (this->fields.end() != itr)
@@ -876,14 +886,10 @@ public:
 
     virtual JVar& operator=(int64_t value)
     {
-        this->Str.clear();
-        this->fields.clear();
-
-        this->subtype = JType::INT;
+        this->Subtype(JType::INT);
         this->und = false;
         this->nul = false;
         this->Int = value;
-
         return *this;
     }
 
@@ -894,14 +900,10 @@ public:
 
     virtual JVar& operator=(double value)
     {
-        this->Str.clear();
-        this->fields.clear();
-
-        this->subtype = JType::NUM;
+        this->Subtype(JType::NUM);
         this->und = false;
         this->nul = false;
         this->Num = value;
-
         return *this;
     }
 
@@ -912,38 +914,28 @@ public:
 
     virtual JVar& operator=(bool value)
     {
-        this->Str.clear();
-        this->fields.clear();
-
-        this->subtype = JType::BOOL;
+        this->Subtype(JType::BOOL);
         this->und = false;
         this->nul = false;
         this->Bool = value;
-
         return *this;
     }
 
     virtual JVar& operator=(const std::string& value)
     {
-        this->fields.clear();
-
-        this->subtype = JType::STR;
+        this->Subtype(JType::STR);
         this->und = false;
         this->nul = false;
         this->Str = value;
-
         return *this;
     }
 
     virtual JVar& operator=(const char* value)
     {
-        this->fields.clear();
-
-        this->subtype = JType::STR;
+        this->Subtype(JType::STR);
         this->und = false;
         this->nul = false;
         this->Str = value;
-
         return *this;
     }
 
