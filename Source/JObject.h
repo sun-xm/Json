@@ -333,7 +333,7 @@ protected:
 class JArray : public JField
 {
 public:
-    virtual JField* GetNew() = 0;
+    virtual JField* NewItem() = 0;
     virtual bool ForEach(const std::function<bool(const JField& field)>& cb) const = 0;
 
     JType Type() const override
@@ -417,7 +417,7 @@ public:
         }
     }
 
-    T* GetNew() override // Caution: Returned pointer may become invalid after subsequent call due to reallocation.
+    T* NewItem() override // Caution: Returned pointer may become invalid after subsequent call due to reallocation.
     {
         this->Value.push_back(T());
         return &this->Value.back();
@@ -646,7 +646,38 @@ protected:
     }
 };
 
-class JVar : public JField
+class JVariant : public JField
+{
+public:
+    virtual void  Subtype(JType subtype) = 0;
+    virtual JType Subtype() const = 0;
+
+    virtual JVariant* NewItem() = 0;
+    virtual JVariant* GetField(const std::string&) = 0;
+
+    virtual bool ToArr(JArray&, std::string&) const = 0;
+    virtual bool ToObj(JObject&, std::string&) const = 0;
+
+    virtual void ForEach(const std::function<void(const std::string&, const JVariant&)>&) const = 0;
+    virtual void ForEach(const std::function<void(const JVariant&)>&) const = 0;
+
+    virtual JVariant& operator=(int64_t) = 0;
+    virtual JVariant& operator=(int32_t) = 0;
+    virtual JVariant& operator=(double) = 0;
+    virtual JVariant& operator=(float) = 0;
+    virtual JVariant& operator=(bool) = 0;
+    virtual JVariant& operator=(const std::string&) = 0;
+    virtual JVariant& operator=(const char*) = 0;
+    virtual JVariant& operator=(const JField&) = 0;
+    virtual JVariant& operator=(std::nullptr_t) = 0;
+
+    virtual int64_t Int() const = 0;
+    virtual double  Num() const = 0;
+    virtual bool    Bool() const = 0;
+    virtual const std::string& Str() const = 0;
+};
+
+class JVar : public JVariant
 {
 public:
     JVar() : subtype(JType::VAR) {}
@@ -679,7 +710,7 @@ public:
     void Clear() override
     {
         this->subtype = JType::VAR;
-        this->Str.clear();
+        this->str.clear();
         this->fields.clear();
         JField::Clear();
     }
@@ -694,7 +725,7 @@ public:
         return JType::OBJ == this->subtype;
     }
 
-    virtual void Subtype(JType subtype)
+    void Subtype(JType subtype) override
     {
         if (this->subtype != subtype)
         {
@@ -703,7 +734,7 @@ public:
         this->subtype = subtype;
     }
 
-    virtual JType Subtype() const
+    virtual JType Subtype() const override
     {
         return this->subtype;
     }
@@ -811,14 +842,14 @@ public:
         return false;
     }
 
-    virtual JVar* GetNewItem()
+    JVar* NewItem() override
     {
         this->Subtype(JType::ARR);
 
         auto name = std::to_string(this->fields.size());
         return &(this->fields[name] = JVar());
     }
-    virtual JVar* GetNewField(const std::string& name)
+    JVar* GetField(const std::string& name) override
     {
         this->Subtype(JType::OBJ);
 
@@ -831,8 +862,8 @@ public:
         return &(this->fields[name] = JVar());
     }
 
-    bool ToArr(JArray& arr, std::string& err) const;
-    bool ToObj(JObject& obj, std::string& err) const;
+    bool ToArr(JArray& arr, std::string& err) const override;
+    bool ToObj(JObject& obj, std::string& err) const override;
 
     bool ToArr(JArray& arr) const
     {
@@ -844,6 +875,27 @@ public:
     {
         std::string err;
         return this->ToObj(obj, err);
+    }
+
+    void ForEach(const std::function<void(const std::string&, const JVariant&)>& cb) const override
+    {
+        if (JType::OBJ == this->subtype && cb)
+        {
+            for (auto& pair : this->fields)
+            {
+                cb(pair.first, pair.second);
+            }
+        }
+    }
+    void ForEach(const std::function<void(const JVariant&)>& cb) const override
+    {
+        if (JType::ARR == this->subtype && cb)
+        {
+            for (auto& pair : this->fields)
+            {
+                cb(pair.second);
+            }
+        }
     }
 
     JVar& operator[](std::size_t index)
@@ -881,7 +933,7 @@ public:
             throw std::runtime_error("Is not an object");
         }
 
-        return *this->GetNewField(field);
+        return *this->GetField(field);
     }
     const JVar& operator[](const std::string& field) const
     {
@@ -898,93 +950,113 @@ public:
         return this->fields.find(field)->second;
     }
 
-    virtual JVar& operator=(int64_t value)
+    JVar& operator=(int64_t value) override
     {
         this->Subtype(JType::INT);
         this->und = false;
         this->nul = false;
-        this->Int = value;
+        this->val.i = value;
         return *this;
     }
 
-    virtual JVar& operator=(int32_t value)
+    JVar& operator=(int32_t value) override
     {
         return (*this = (int64_t)value);
     }
 
-    virtual JVar& operator=(double value)
+    JVar& operator=(double value) override
     {
         this->Subtype(JType::NUM);
         this->und = false;
         this->nul = false;
-        this->Num = value;
+        this->val.n = value;
         return *this;
     }
 
-    virtual JVar& operator=(float value)
+    JVar& operator=(float value) override
     {
         return (*this = (double)value);
     }
 
-    virtual JVar& operator=(bool value)
+    JVar& operator=(bool value) override
     {
         this->Subtype(JType::BOOL);
         this->und = false;
         this->nul = false;
-        this->Bool = value;
+        this->val.b = value;
         return *this;
     }
 
-    virtual JVar& operator=(const std::string& value)
+    JVar& operator=(const std::string& value) override
     {
         this->Subtype(JType::STR);
         this->und = false;
         this->nul = false;
-        this->Str = value;
+        this->str = value;
         return *this;
     }
 
-    virtual JVar& operator=(const char* value)
+    JVar& operator=(const char* value) override
     {
         this->Subtype(JType::STR);
         this->und = false;
         this->nul = false;
-        this->Str = value;
+        this->str = value;
         return *this;
     }
 
-    virtual JVar& operator=(const JVar& var)
-    {
-        this->Clear();
-
-        ((JField&)*this) = var;
-
-        this->Int = var.Int;
-        this->Str = var.Str;
-        this->fields = var.fields;
-        this->subtype = var.subtype;
-
-        return *this;
-    }
-
-    virtual JVar& operator=(const JField& field);
+    JVar& operator=(const JField& field) override;
 
     JVar& operator=(std::nullptr_t) override
     {
         return (JVar&)JField::operator=(nullptr);
     }
 
-    union
+    JVar& operator=(const JVar& var)
     {
-        int64_t Int;
-        double  Num;
-        bool    Bool;
-    };
+        this->Clear();
 
-    std::string Str;
+        ((JField&)*this) = var;
+
+        this->str = var.str;
+        this->val = var.val;
+        this->fields = var.fields;
+        this->subtype = var.subtype;
+
+        return *this;
+    }
+
+    int64_t Int() const override
+    {
+        return this->val.i;
+    }
+
+    double Num() const override
+    {
+        return this->val.n;
+    }
+
+    bool Bool() const override
+    {
+        return this->val.b;
+    }
+
+    const std::string& Str() const override
+    {
+        return this->str;
+    }
 
 protected:
     JType subtype;
+
+    union
+    {
+        int64_t i;
+        double  n;
+        bool    b;
+    } val;
+    std::string str;
+
     std::map<std::string, JVar> fields;
     static const JVar UndVar;
 };
@@ -1014,9 +1086,9 @@ private:
     static bool         IsFloat(const std::string& num);
 
     static void GetJson(const std::string& name, const JField& field, std::ostream& json);
+    static void GetJson(const JVariant& var, std::ostream& json);
     static void GetJson(const JObject& obj, std::ostream& json);
     static void GetJson(const JArray& arr, std::ostream& json);
     static void GetJson(const JDate& date, std::ostream& json);
     static void GetJson(const JStr& str, std::ostream& json);
-    static void GetJson(const JVar& var, std::ostream& json);
 };

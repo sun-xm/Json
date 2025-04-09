@@ -36,22 +36,22 @@ bool Deserialize()
         return false;
     }
 
-    if (!jvar.Deserialize("123") || !jvar.HasValue() || JType::INT != jvar.Subtype() || 123 != jvar.Int)
+    if (!jvar.Deserialize("123") || !jvar.HasValue() || JType::INT != jvar.Subtype() || 123 != jvar.Int())
     {
         return false;
     }
 
-    if (!jvar.Deserialize("-123") || !jvar.HasValue() || JType::INT != jvar.Subtype() || -123 != jvar.Int)
+    if (!jvar.Deserialize("-123") || !jvar.HasValue() || JType::INT != jvar.Subtype() || -123 != jvar.Int())
     {
         return false;
     }
 
-    if (!jvar.Deserialize("0X1AB") || !jvar.HasValue() || JType::INT != jvar.Subtype() || 0x1AB != jvar.Int)
+    if (!jvar.Deserialize("0X1AB") || !jvar.HasValue() || JType::INT != jvar.Subtype() || 0x1AB != jvar.Int())
     {
         return false;
     }
 
-    if (!jvar.Deserialize("0x1ab") || !jvar.HasValue() || JType::INT != jvar.Subtype() || 0x1AB != jvar.Int)
+    if (!jvar.Deserialize("0x1ab") || !jvar.HasValue() || JType::INT != jvar.Subtype() || 0x1AB != jvar.Int())
     {
         return false;
     }
@@ -61,37 +61,37 @@ bool Deserialize()
         return false;
     }
 
-    if (!jvar.Deserialize("1.23") || !jvar.HasValue() || JType::NUM != jvar.Subtype() || 1.23 != jvar.Num)
+    if (!jvar.Deserialize("1.23") || !jvar.HasValue() || JType::NUM != jvar.Subtype() || 1.23 != jvar.Num())
     {
         return false;
     }
 
-    if (!jvar.Deserialize("-1.23") || !jvar.HasValue() || JType::NUM != jvar.Subtype() || -1.23 != jvar.Num)
+    if (!jvar.Deserialize("-1.23") || !jvar.HasValue() || JType::NUM != jvar.Subtype() || -1.23 != jvar.Num())
     {
         return false;
     }
 
-    if (!jvar.Deserialize("123e4") || !jvar.HasValue() || JType::NUM != jvar.Subtype() || 1230000.0 != jvar.Num)
+    if (!jvar.Deserialize("123e4") || !jvar.HasValue() || JType::NUM != jvar.Subtype() || 1230000.0 != jvar.Num())
     {
         return false;
     }
 
-    if (!jvar.Deserialize("-123e-4") || !jvar.HasValue() || JType::NUM != jvar.Subtype() || -0.0123 != jvar.Num)
+    if (!jvar.Deserialize("-123e-4") || !jvar.HasValue() || JType::NUM != jvar.Subtype() || -0.0123 != jvar.Num())
     {
         return false;
     }
 
-    if (!jvar.Deserialize("\"123\"") || !jvar.HasValue() || JType::STR != jvar.Subtype() || "123" != jvar.Str)
+    if (!jvar.Deserialize("\"123\"") || !jvar.HasValue() || JType::STR != jvar.Subtype() || "123" != jvar.Str())
     {
         return false;
     }
 
-    if (!jvar.Deserialize("true") || !jvar.HasValue() || JType::BOOL != jvar.Subtype() || !jvar.Bool)
+    if (!jvar.Deserialize("true") || !jvar.HasValue() || JType::BOOL != jvar.Subtype() || !jvar.Bool())
     {
         return false;
     }
 
-    if (!jvar.Deserialize("false") || !jvar.HasValue() || JType::BOOL != jvar.Subtype() || jvar.Bool)
+    if (!jvar.Deserialize("false") || !jvar.HasValue() || JType::BOOL != jvar.Subtype() || jvar.Bool())
     {
         return false;
     }
@@ -108,7 +108,7 @@ bool Deserialize()
 
     for (int64_t i = 0; i < 3; i++)
     {
-        if (!jvar[i].HasValue() || JType::INT != jvar[i].Subtype() || i != jvar[i].Int)
+        if (!jvar[i].HasValue() || JType::INT != jvar[i].Subtype() || i != jvar[i].Int())
         {
             return false;
         }
@@ -124,7 +124,7 @@ bool Deserialize()
         return false;
     }
 
-    if (!jvar["one"].HasValue() || JType::INT != jvar["one"].Subtype() || 1 != jvar["one"].Int)
+    if (!jvar["one"].HasValue() || JType::INT != jvar["one"].Subtype() || 1 != jvar["one"].Int())
     {
         return false;
     }
@@ -139,7 +139,7 @@ bool Deserialize()
         return false;
     }
 
-    if (!jvar.Deserialize("{\"a.b\":1}") || !jvar.HasValue() || !jvar["a"].HasValue() || !jvar["a"]["b"].HasValue() || 1 != jvar["a"]["b"].Int)
+    if (!jvar.Deserialize("{\"a.b\":1}") || !jvar.HasValue() || !jvar["a"].HasValue() || !jvar["a"]["b"].HasValue() || 1 != jvar["a"]["b"].Int())
     {
         return false;
     }
@@ -288,7 +288,7 @@ bool Asign()
     }
 
     jvar = true;
-    if (!jvar.HasValue() || !jvar.Bool)
+    if (!jvar.HasValue() || !jvar.Bool())
     {
         return false;
     }
@@ -306,7 +306,7 @@ bool Asign()
     }
 
     jvar = 123;
-    if (!jvar.HasValue() || JType::INT != jvar.Subtype() || 123 != jvar.Int)
+    if (!jvar.HasValue() || JType::INT != jvar.Subtype() || 123 != jvar.Int())
     {
         return false;
     }
@@ -325,7 +325,7 @@ bool Asign()
 
     for (int64_t i = 0; i < 3; i++)
     {
-        if (JType::INT != jvar[i].Subtype() || i != jvar[i].Int)
+        if (JType::INT != jvar[i].Subtype() || i != jvar[i].Int())
         {
             return false;
         }
@@ -356,7 +356,7 @@ bool Asign()
         return false;
     }
 
-    if (JType::NUM != jvar["num"].Subtype() || 0 != jvar["num"].Num)
+    if (JType::NUM != jvar["num"].Subtype() || 0 != jvar["num"].Num())
     {
         return false;
     }
@@ -368,7 +368,7 @@ bool Asign()
 
     for (int64_t i = 0; i < 2; i++)
     {
-        if (!jvar["ints"][i].HasValue() || JType::INT != jvar["ints"][i].Subtype() || i != jvar["ints"][i].Int)
+        if (!jvar["ints"][i].HasValue() || JType::INT != jvar["ints"][i].Subtype() || i != jvar["ints"][i].Int())
         {
             return false;
         }
@@ -394,12 +394,12 @@ bool Compose()
         return false;
     }
 
-    if (123 != jvar["int"].Int || 1.23 != jvar["num"].Num)
+    if (123 != jvar["int"].Int() || 1.23 != jvar["num"].Num())
     {
         return false;
     }
 
-    if (JType::STR != jvar["obj"]["str"].Subtype() || "123" != jvar["obj"]["str"].Str)
+    if (JType::STR != jvar["obj"]["str"].Subtype() || "123" != jvar["obj"]["str"].Str())
     {
         return false;
     }

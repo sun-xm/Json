@@ -5,8 +5,8 @@
 #include <limits>
 #include <sstream>
 
-#define GETFIELD(f, n)  (JType::OBJ == f->Type() ? ((JObject*)f)->GetField(n) : ((JVar*)f)->GetNewField(n))
-#define GETNEW(f)       (JType::ARR == f->Type() ? ((JArray*)f)->GetNew() : ((JVar*)f)->GetNewItem())
+#define GETFIELD(f, n)  (JType::OBJ == f->Type() ? ((JObject*)f)->GetField(n) : ((JVariant*)f)->GetField(n))
+#define NEWITEM(f)      (JType::ARR == f->Type() ? ((JArray*)f)->NewItem() : ((JVariant*)f)->NewItem())
 
 using namespace std;
 
@@ -171,8 +171,6 @@ bool JVar::ToArr(JArray& arr, string& err) const
         return false;
     }
 
-    // arr.Define();
-
     try
     {
         this->ForEachItem([&arr, &err](const JVar& var)
@@ -182,7 +180,7 @@ bool JVar::ToArr(JArray& arr, string& err) const
                 return false;
             }
 
-            auto item = arr.GetNew();
+            auto item = arr.NewItem();
 
             if (var.IsNull())
             {
@@ -200,19 +198,19 @@ bool JVar::ToArr(JArray& arr, string& err) const
                 {
                     case JType::INT:
                     {
-                        *(JInt*)item = var.Int;
+                        *(JInt*)item = var.Int();
                         break;
                     }
 
                     case JType::NUM:
                     {
-                        *(JNum*)item = var.Num;
+                        *(JNum*)item = var.Num();
                         break;
                     }
 
                     case JType::STR:
                     {
-                        *(JStr*)item = var.Str;
+                        *(JStr*)item = var.Str();
                         break;
                     }
 
@@ -239,7 +237,7 @@ bool JVar::ToArr(JArray& arr, string& err) const
             }
             else if (JType::NUM == item->Type() && JType::INT == var.Subtype())
             {
-                *(JNum*)item = (double)var.Int;
+                *(JNum*)item = (double)var.Int();
             }
             else
             {
@@ -309,19 +307,19 @@ bool JVar::ToObj(JObject& obj, string& err) const
                 {
                     case JType::INT:
                     {
-                        *(JInt*)field = var.Int;
+                        *(JInt*)field = var.Int();
                         break;
                     }
 
                     case JType::NUM:
                     {
-                        *(JNum*)field = var.Num;
+                        *(JNum*)field = var.Num();
                         break;
                     }
 
                     case JType::STR:
                     {
-                        *(JStr*)field = var.Str;
+                        *(JStr*)field = var.Str();
                         break;
                     }
 
@@ -348,7 +346,7 @@ bool JVar::ToObj(JObject& obj, string& err) const
             }
             else if (JType::NUM == field->Type() && JType::INT == var.Subtype())
             {
-                *(JNum*)field = (double)var.Int;
+                *(JNum*)field = (double)var.Int();
             }
             else
             {
@@ -417,7 +415,7 @@ JVar& JVar::operator=(const JField& field)
         {
             ((JArray&)field).ForEach([this](const JField& field)
             {
-                auto item = this->GetNewItem();
+                auto item = this->NewItem();
                 *item = field;
                 return false;
             });
@@ -429,7 +427,7 @@ JVar& JVar::operator=(const JField& field)
         {
             ((JObject&)field).ForEach([this](const string& name, const JField& field)
             {
-                auto f = this->GetNewField(name);
+                auto f = this->GetField(name);
                 *f = field;
                 return false;
             });
@@ -570,7 +568,7 @@ void JParser::GetVal(istream& json, const string& name, JField* field)
                 }
                 else if (JType::VAR == field->Type())
                 {
-                    *(JVar*)field = GetStr(json);
+                    *(JVariant*)field = GetStr(json);
                 }
                 else if (JType::DATE == field->Type())
                 {
@@ -606,7 +604,7 @@ void JParser::GetVal(istream& json, const string& name, JField* field)
                         }
                         else if (JType::VAR == field->Type())
                         {
-                            *(JVar*)field = GetBool(json);
+                            *(JVariant*)field = GetBool(json);
                         }
                         else
                         {
@@ -665,11 +663,11 @@ void JParser::GetVal(istream& json, const string& name, JField* field)
                                     auto num = GetNum(json);
                                     if (IsFloat(num))
                                     {
-                                        *(JVar*)field = GetFlt(num);
+                                        *(JVariant*)field = GetFlt(num);
                                     }
                                     else
                                     {
-                                        *(JVar*)field = GetInt(num);
+                                        *(JVariant*)field = GetInt(num);
                                     }
                                     break;
                                 }
@@ -702,7 +700,7 @@ void JParser::GetArr(istream& json, const string& name, JField* arr)
 {
     if (arr && JType::VAR == arr->Type())
     {
-        ((JVar*)arr)->Subtype(JType::ARR);
+        ((JVariant*)arr)->Subtype(JType::ARR);
     }
 
     auto c = FirstNotSpace(json);
@@ -715,7 +713,7 @@ void JParser::GetArr(istream& json, const string& name, JField* arr)
 
     do
     {
-        GetVal(json, name, arr ? GETNEW(arr) : nullptr);
+        GetVal(json, name, arr ? NEWITEM(arr) : nullptr);
 
     } while ([&]
     {
@@ -738,7 +736,7 @@ void JParser::GetObj(istream& json, JField* obj)
 {
     if (obj && JType::VAR == obj->Type())
     {
-        ((JVar*)obj)->Subtype(JType::OBJ);
+        ((JVariant*)obj)->Subtype(JType::OBJ);
     }
 
     auto c = FirstNotSpace(json);
@@ -1356,6 +1354,111 @@ bool JParser::IsFloat(const string& num)
     return false;
 }
 
+void JParser::GetJson(const JVariant& var, ostream& json)
+{
+    switch (var.Subtype())
+    {
+        case JType::BOOL:
+        {
+            json << (var.Bool() ? "true" : "false");
+            break;
+        }
+
+        case JType::INT:
+        {
+            json << var.Int();
+            break;
+        }
+
+        case JType::NUM:
+        {
+            json << setprecision(numeric_limits<double>::digits10 + 1) << var.Num();
+            break;
+        }
+
+        case JType::STR:
+        {
+            json << '\"';
+
+            for (auto c : var.Str())
+            {
+                switch (c)
+                {
+                    case '\\':
+                    {
+                        json << "\\\\";
+                        break;
+                    }
+
+                    case '"':
+                    {
+                        json << "\\\"";
+                        break;
+                    }
+
+                    default:
+                    {
+                        json << c;
+                        break;
+                    }
+                }
+            }
+
+            json << '\"';
+            break;
+        }
+
+        case JType::OBJ:
+        {
+            json << '{';
+
+            bool first = true;
+            auto foreach = (function<void(const string&, const JVariant&)>)[&first, &json](const string& name, const JVariant& var)
+            {
+                if (var.IsUndefined())
+                {
+                    return;
+                }
+
+                if (!first)
+                {
+                    json << ',';
+                }
+                first = false;
+
+                GetJson(name, var, json);
+            };
+            var.ForEach(foreach);
+
+            json << '}';
+            break;
+        }
+
+        case JType::ARR:
+        {
+            json << '[';
+
+            bool first = true;
+            auto foreach = (function<void(const JVariant&)>)[&first, &json](const JVariant& var)
+            {
+                if (!first)
+                {
+                    json << ',';
+                }
+                first = false;
+
+                GetJson("", var, json);
+            };
+            var.ForEach(foreach);
+
+            json << ']';
+            break;
+        }
+
+        default: break;
+    }
+}
+
 void JParser::GetJson(const string& name, const JField& field, ostream& json)
 {
     if (field.IsUndefined())
@@ -1405,7 +1508,7 @@ void JParser::GetJson(const string& name, const JField& field, ostream& json)
         break;
 
     case JType::VAR:
-        GetJson((JVar&)field, json);
+        GetJson((JVariant&)field, json);
         break;
 
     default:
@@ -1508,111 +1611,4 @@ void JParser::GetJson(const JStr& str, ostream& json)
     }
 
     json << '\"';
-}
-
-void JParser::GetJson(const JVar& var, ostream& json)
-{
-    switch (var.Subtype())
-    {
-        case JType::BOOL:
-        {
-            json << (var.Bool ? "true" : "false");
-            break;
-        }
-
-        case JType::INT:
-        {
-            json << var.Int;
-            break;
-        }
-
-        case JType::NUM:
-        {
-            json << setprecision(numeric_limits<double>::digits10 + 1) << var.Num;
-            break;
-        }
-
-        case JType::STR:
-        {
-            json << '\"';
-
-            for (auto c : var.Str)
-            {
-                switch (c)
-                {
-                    case '\\':
-                    {
-                        json << "\\\\";
-                        break;
-                    }
-
-                    case '"':
-                    {
-                        json << "\\\"";
-                        break;
-                    }
-
-                    default:
-                    {
-                        json << c;
-                        break;
-                    }
-                }
-            }
-
-            json << '\"';
-            break;
-        }
-
-        case JType::OBJ:
-        {
-            json << '{';
-
-            bool first = true;
-            var.ForEachField([&](const string& name, const JVar& var)
-            {
-                if (var.IsUndefined())
-                {
-                    return false;
-                }
-
-                if (!first)
-                {
-                    json << ',';
-                }
-                first = false;
-
-                GetJson(name, var, json);
-
-                return false;
-            });
-
-            json << '}';
-            break;
-        }
-
-        case JType::ARR:
-        {
-            json << '[';
-
-            bool first = true;
-            var.ForEachItem([&](const JVar& var)
-            {
-                if (!first)
-                {
-                    json << ',';
-                }
-                first = false;
-
-                GetJson("", var, json);
-
-                return false;
-            });
-
-            json << ']';
-            break;
-        }
-
-        default: break;
-    }
 }

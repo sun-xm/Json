@@ -72,7 +72,7 @@ int main()
         return -1;
     }
 
-    if (123 != outer.inner.num || 1.23 != outer.inner.flt || !outer.inner.var.Bool)
+    if (123 != outer.inner.num || 1.23 != outer.inner.flt || !outer.inner.var.Bool())
     {
         return -1;
     }
