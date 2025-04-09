@@ -404,6 +404,12 @@ bool Compose()
         return false;
     }
 
+    auto& und = ((const JVar&)jvar)["undefined"];
+    if (!und.IsUndefined())
+    {
+        return false;
+    }
+
     return true;
 }
 

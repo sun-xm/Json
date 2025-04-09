@@ -147,6 +147,9 @@ bool JField::Deserialize(string&& json, string& error, size_t& where)
     return this->Deserialize(istringstream(json), error, where);
 }
 
+
+const JVar JVar::UndVar;
+
 bool JVar::ToArr(JArray& arr, string& err) const
 {
     arr.Clear();
@@ -168,12 +171,17 @@ bool JVar::ToArr(JArray& arr, string& err) const
         return false;
     }
 
-    arr.Define();
+    // arr.Define();
 
     try
     {
         this->ForEachItem([&arr, &err](const JVar& var)
         {
+            if (var.IsUndefined())
+            {
+                return false;
+            }
+
             auto item = arr.GetNew();
 
             if (var.IsNull())
@@ -692,16 +700,9 @@ void JParser::GetVal(istream& json, const string& name, JField* field)
 
 void JParser::GetArr(istream& json, const string& name, JField* arr)
 {
-    if (arr)
+    if (arr && JType::VAR == arr->Type())
     {
-        if (JType::ARR == arr->Type())
-        {
-            ((JArray*)arr)->Define();
-        }
-        else
-        {
-            ((JVar*)arr)->Subtype(JType::ARR);
-        }
+        ((JVar*)arr)->Subtype(JType::ARR);
     }
 
     auto c = FirstNotSpace(json);

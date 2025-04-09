@@ -16,7 +16,7 @@ int main()
         return -1;
     }
 
-    if (!jarr.Deserialize("[]", e, w) || jarr.IsUndefined() || jarr.IsNull() || !jarr.HasValue() || 0 != jarr().size())
+    if (!jarr.Deserialize("[]", e, w) || !jarr.IsUndefined() || jarr.IsNull() || jarr.HasValue() || 0 != jarr().size())
     {
         return -1;
     }
