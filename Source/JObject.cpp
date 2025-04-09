@@ -270,7 +270,7 @@ bool JVar::ToObj(JObject& obj, string& err) const
         return false;
     }
 
-    obj.Define();
+    // obj.Define();
 
     try
     {
@@ -745,7 +745,7 @@ void JParser::GetObj(istream& json, JField* obj)
     {
         if (JType::OBJ == obj->Type())
         {
-            ((JObject*)obj)->Define();
+            // ((JObject*)obj)->Define();
         }
         else
         {
@@ -779,7 +779,7 @@ void JParser::GetObj(istream& json, JField* obj)
                 {
                     case JType::OBJ:
                     {
-                        ((JObject*)f)->Define();
+                        // ((JObject*)f)->Define();
                         break;
                     }
 

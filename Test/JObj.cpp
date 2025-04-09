@@ -42,12 +42,12 @@ int main()
         return -1;
     }
 
-    if (!outer.Deserialize("null", e, w) || outer.IsUndefined() || !outer.IsNull() || outer.HasValue())
+    if (!outer.Deserialize("{}", e, w) || !outer.IsUndefined() || outer.IsNull() || outer.HasValue())
     {
         return -1;
     }
 
-    if (!outer.Deserialize("{}", e, w) || outer.IsUndefined() || outer.IsNull() || !outer.HasValue())
+    if (!outer.Deserialize("null", e, w) || outer.IsUndefined() || !outer.IsNull() || outer.HasValue())
     {
         return -1;
     }

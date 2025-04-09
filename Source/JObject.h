@@ -15,7 +15,7 @@
                                 }\
                                 bool IsUndefined() const override\
                                 {\
-                                    if (!this->und)\
+                                    if (this->nul)\
                                     {\
                                         return false;\
                                     }\
@@ -130,7 +130,7 @@
                                 }\
                                 bool IsUndefined() const override\
                                 {\
-                                    if (!this->und)\
+                                    if (this->nul)\
                                     {\
                                         return false;\
                                     }\
@@ -610,12 +610,6 @@ public:
     bool IsObj() const override
     {
         return true;
-    }
-
-    void Define()
-    {
-        this->und = false;
-        this->nul = false;
     }
 
     virtual JField* GetField(const std::string&) = 0;
