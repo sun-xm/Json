@@ -1031,9 +1031,19 @@ public:
         return this->val.i;
     }
 
+    int64_t Int(int64_t defVal) const
+    {
+        return (JType::INT == this->subtype && this->HasValue()) ? this->Int() : defVal;
+    }
+
     double Num() const override
     {
         return this->val.n;
+    }
+
+    double Num(double defVal) const
+    {
+        return (JType::NUM == this->subtype && this->HasValue()) ? this->Num() : defVal;
     }
 
     bool Bool() const override
@@ -1041,9 +1051,19 @@ public:
         return this->val.b;
     }
 
+    bool Bool(bool defVal) const
+    {
+        return (JType::BOOL == this->subtype && this->HasValue()) ? this->Bool() : defVal;
+    }
+
     const std::string& Str() const override
     {
         return this->str;
+    }
+
+    const std::string& Str(const std::string& defVal) const
+    {
+        return (JType::STR == this->subtype && this->HasValue()) ? this->Str() : defVal;
     }
 
 protected:

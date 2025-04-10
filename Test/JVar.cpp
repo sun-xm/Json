@@ -413,6 +413,39 @@ bool Compose()
     return true;
 }
 
+bool Default()
+{
+    JVar jvar;
+
+    if (123 != jvar.Int(123))
+    {
+        return false;
+    }
+
+    if (1.23 != jvar.Num(1.23))
+    {
+        return false;
+    }
+
+    if (jvar.Bool(false))
+    {
+        return false;
+    }
+
+    if ("hello" != jvar.Str("hello"))
+    {
+        return false;
+    }
+
+    jvar.Deserialize("123");
+    if (123 != jvar.Int(1234))
+    {
+        return false;
+    }
+
+    return true;
+}
+
 int main()
 {
     if (!Deserialize())
@@ -441,6 +474,11 @@ int main()
     }
 
     if (!Compose())
+    {
+        return -1;
+    }
+
+    if (!Default())
     {
         return -1;
     }
