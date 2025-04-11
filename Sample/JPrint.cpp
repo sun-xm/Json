@@ -117,7 +117,12 @@ string JError(istream& json, const string& error, size_t where)
     return oss.str();
 }
 
-ostream& operator<<(ostream& stream, const JDate& date)
+ostream& operator<<(ostream& stream, const JStr& str)
+{
+    return stream << str.Value;
+}
+
+ostream& operator<<(ostream& stream, const JTime& date)
 {
     tm tm;
     time_t dt = date;
@@ -136,11 +141,6 @@ ostream& operator<<(ostream& stream, const JDate& date)
            << setfill('0') << setw(2) << tm.tm_sec << 'Z';
     stream.flags(flags);
     return stream;
-}
-
-ostream& operator<<(ostream& stream, const JStr& str)
-{
-    return stream << str.Value;
 }
 
 ostream& operator<<(ostream& stream, const JField& field)

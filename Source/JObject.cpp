@@ -16,6 +16,9 @@ inline std::string to_string(JType type)
 {
     switch (type)
     {
+        case JType::BOOL:
+            return "JType::BOOL";
+
         case JType::INT:
             return "JType::INT";
 
@@ -30,12 +33,6 @@ inline std::string to_string(JType type)
 
         case JType::ARR:
             return "JType::ARR";
-
-        case JType::DATE:
-            return "JType::DATE";
-
-        case JType::BOOL:
-            return "JType::BOOL";
 
         case JType::VAR:
             return "JType::VAR";
@@ -147,6 +144,104 @@ bool JField::Deserialize(string&& json, string& error, size_t& where)
     return this->Deserialize(istringstream(json), error, where);
 }
 
+bool JTime::ToTime(const string& value, time_t& time)
+{
+    if (0 == value.find("\\/Date("))
+    {
+        string::size_type pos = 0;
+        time = JParser::GetInt(value, pos);
+
+        if ('+' == value[pos] || '-' == value[pos])
+        {
+            auto zone = JParser::GetInt(value, pos);
+            auto hours = zone / 100;
+            auto minites = zone - hours * 100;
+
+            time -= hours * 60 * 60;
+            time -= minites * 60;
+        }
+
+        return true;
+    }
+    else
+    {
+        tm tm = { 0 };
+        string::size_type pos = 0;
+
+        tm.tm_year = (int)JParser::GetUint(value, pos) - 1900;
+        if ('-' != value[pos])
+        {
+            return false;
+        }
+
+        tm.tm_mon = (int)JParser::GetUint(value, ++pos) - 1;
+        if ('-' != value[pos])
+        {
+            return false;
+        }
+
+        tm.tm_mday = (int)JParser::GetUint(value, ++pos);
+        if ('T' != value[pos])
+        {
+            return false;
+        }
+
+        tm.tm_hour = (int)JParser::GetUint(value, ++pos);
+        if (':' != value[pos])
+        {
+            return false;
+        }
+
+        tm.tm_min = (int)JParser::GetUint(value, ++pos);
+        if (':' != value[pos])
+        {
+            return false;
+        }
+
+        tm.tm_sec = (int)JParser::GetUint(value, ++pos);
+
+        if ('.' == value[pos])
+        {
+            JParser::GetUint(value, ++pos);
+        }
+
+        time = mktime(&tm);
+        if (-1 == time)
+        {
+            return false;
+        }
+
+        if ('z' != tolower(value[pos]))
+        {
+            auto zone = JParser::GetInt(value, pos);
+            auto hours = zone / 100;
+            auto minites = zone - hours * 100;
+
+            time -= hours * 60 * 60;
+            time -= minites * 60;
+        }
+
+        return true;
+    }
+}
+
+string JTime::ToString(time_t time)
+{
+    tm tm;
+#if defined(WIN32) || defined(_WIN32)
+    localtime_s(&tm, &time);
+#else
+    tm = *localtime(&time);
+#endif
+    ostringstream json;
+    json << '\"' << to_string(tm.tm_year + 1900) << '-'
+        << setfill('0') << setw(2) << tm.tm_mon + 1 << '-'
+        << setfill('0') << setw(2) << tm.tm_mday << 'T'
+        << setfill('0') << setw(2) << tm.tm_hour << ':'
+        << setfill('0') << setw(2) << tm.tm_min  << ':'
+        << setfill('0') << setw(2) << tm.tm_sec  << "Z\"";
+    return json.str();
+}
 
 const JVar JVar::UndVar;
 
@@ -405,12 +500,6 @@ JVar& JVar::operator=(const JField& field)
             break;
         }
 
-        case JType::DATE:
-        {
-            *this = field.Serialize();
-            break;
-        }
-
         case JType::ARR:
         {
             ((JArray&)field).ForEach([this](const JField& field)
@@ -569,10 +658,6 @@ void JParser::GetVal(istream& json, const string& name, JField* field)
                 else if (JType::VAR == field->Type())
                 {
                     *(JVariant*)field = GetStr(json);
-                }
-                else if (JType::DATE == field->Type())
-                {
-                    *(JDate*)field = GetDate(json);
                 }
                 else
                 {
@@ -1200,96 +1285,6 @@ string JParser::GetName(istream& json)
     return oss.str();
 }
 
-time_t JParser::GetDate(istream& json)
-{
-    auto beg = json.tellg();
-    auto date = GetStr(json);
-
-    if (0 == date.find("\\/Date("))
-    {
-        string::size_type pos = 0;
-        time_t time = GetInt(date, pos);
-
-        if ('+' == date[pos] || '-' == date[pos])
-        {
-            auto zone = GetInt(date, pos);
-            auto hours = zone / 100;
-            auto minites = zone - hours * 100;
-
-            time -= hours * 60 * 60;
-            time -= minites * 60;
-        }
-
-        return time;
-    }
-    else
-    {
-        tm tm = { 0 };
-        string::size_type pos = 0;
-
-        tm.tm_year = (int)GetUint(date, pos) - 1900;
-        if ('-' != date[pos])
-        {
-            json.seekg(beg);
-            throw Unexpected();
-        }
-
-        tm.tm_mon = (int)GetUint(date, ++pos) - 1;
-        if ('-' != date[pos])
-        {
-            json.seekg(beg);
-            throw Unexpected();
-        }
-
-        tm.tm_mday = (int)GetUint(date, ++pos);
-        if ('T' != date[pos])
-        {
-            json.seekg(beg);
-            throw Unexpected();
-        }
-
-        tm.tm_hour = (int)GetUint(date, ++pos);
-        if (':' != date[pos])
-        {
-            json.seekg(beg);
-            throw Unexpected();
-        }
-
-        tm.tm_min = (int)GetUint(date, ++pos);
-        if (':' != date[pos])
-        {
-            json.seekg(beg);
-            throw Unexpected();
-        }
-
-        tm.tm_sec = (int)GetUint(date, ++pos);
-
-        if ('.' == date[pos])
-        {
-            GetUint(date, ++pos);
-        }
-
-        auto time = mktime(&tm);
-        if (-1 == time)
-        {
-            json.seekg(beg);
-            throw runtime_error("Failed to parse date");
-        }
-
-        if ('z' != tolower(date[pos]))
-        {
-            auto zone = GetInt(date, pos);
-            auto hours = zone / 100;
-            auto minites = zone - hours * 100;
-
-            time -= hours * 60 * 60;
-            time -= minites * 60;
-        }
-
-        return time;
-    }
-}
-
 bool JParser::GetBool(istream& json)
 {
     switch (GetChar(json))
@@ -1481,10 +1476,6 @@ void JParser::GetJson(const string& name, const JField& field, ostream& json)
         json << ((JBool&)field ? "true" : "false");
         break;
 
-    case JType::DATE:
-        GetJson((JDate&)field, json);
-        break;
-
     case JType::STR:
         GetJson((JStr&)field, json);
         break;
@@ -1551,25 +1542,6 @@ void JParser::GetJson(const JArray& arr, ostream& json)
     });
 
     json << ']';
-}
-
-void JParser::GetJson(const JDate& date, ostream& json)
-{
-    tm tm;
-    time_t dt = date;
-#if defined(WIN32) || defined(_WIN32)
-    localtime_s(&tm, &dt);
-#else
-    tm = *localtime(&dt);
-#endif
-    auto flags = json.flags();
-    json << '\"' << to_string(tm.tm_year + 1900) << '-'
-        << setfill('0') << setw(2) << tm.tm_mon + 1 << '-'
-        << setfill('0') << setw(2) << tm.tm_mday << 'T'
-        << setfill('0') << setw(2) << tm.tm_hour << ':'
-        << setfill('0') << setw(2) << tm.tm_min  << ':'
-        << setfill('0') << setw(2) << tm.tm_sec  << "Z\"";
-    json.flags(flags);
 }
 
 void JParser::GetJson(const JStr& str, ostream& json)

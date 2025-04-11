@@ -16,7 +16,7 @@ struct Person : public JObject
 {
     JInt    age;
     JStr    name;
-    JDate   birth;
+    JTime   birth;
     JBool   married;
     JNum    weight;
     Address address;

@@ -261,13 +261,12 @@
 
 enum class JType
 {
+    BOOL,
     INT,
     NUM,
     STR,
     OBJ,
     ARR,
-    DATE,
-    BOOL,
     VAR
 };
 
@@ -328,6 +327,200 @@ public:
 protected:
     bool und;
     bool nul;
+};
+
+template<typename T, typename U>
+class JValue : public JField
+{
+public:
+    JValue() = default;
+    JValue(const T& value) : Value(value)
+    {
+        this->und = false;
+        this->nul = false;
+    }
+    explicit JValue(std::nullptr_t) : JField(nullptr) {}
+
+    virtual U& operator=(const T& value)
+    {
+        this->Value = value;
+        this->und = false;
+        this->nul = false;
+        return (U&)*this;
+    }
+
+    JValue& operator=(std::nullptr_t) override
+    {
+        return (JValue&)JField::operator=(nullptr);
+    }
+
+    const T& ValueOrDefault(const T& defVal) const
+    {
+        return this->HasValue() ? this->Value : defVal;
+    }
+
+    bool operator==(const JValue<T, U>& other)
+    {
+        if (this->und && other.und)
+        {
+            return true;
+        }
+
+        if (this->und != other.und)
+        {
+            return false;
+        }
+
+        if (this->nul && other.nul)
+        {
+            return true;
+        }
+
+        if (this->nul != other.nul)
+        {
+            return false;
+        }
+
+        return this->Value == other.Value;
+    }
+
+    operator const T&() const
+    {
+        return this->Value;
+    }
+
+    const T& operator()() const
+    {
+        return this->Value;
+    }
+
+    const T& operator()(const T& defVal) const
+    {
+        return this->ValueOrDefault(defVal);
+    }
+
+    T Value;
+};
+
+#define JVALUE(T, U, V) U() = default;\
+                        U(T t) : JValue<T, U>(t) {}\
+                        explicit U(std::nullptr_t) : JValue<T, U>(nullptr) {}\
+                        JType Type() const override { return JType::V; }\
+                        using JValue<T, U>::operator=;\
+                        U& operator=(std::nullptr_t) override { return (U&)JValue<T, U>::operator=(nullptr); }
+
+class JBool : public JValue<bool, JBool>
+{
+public:
+    JVALUE(bool, JBool, BOOL);
+};
+
+class JInt : public JValue<int64_t, JInt>
+{
+public:
+    JVALUE(int64_t, JInt, INT);
+
+    JInt& operator=(int32_t v)
+    {
+        *this = (int64_t)v;
+        return *this;
+    }
+
+    JInt& operator=(uint32_t v)
+    {
+        *this = (int64_t)v;
+        return *this;
+    }
+};
+
+class JNum : public JValue<double, JNum>
+{
+public:
+    JVALUE(double, JNum, NUM);
+};
+
+class JStr : public JValue<std::string, JStr>
+{
+public:
+    JVALUE(std::string, JStr, STR);
+
+    void Clear() override
+    {
+        this->Value.clear();
+        JValue<std::string, JStr>::Clear();
+    }
+};
+
+class JTime : public JStr
+{
+public:
+    operator time_t() const
+    {
+        return this->time;
+    }
+
+    const time_t& operator()() const
+    {
+        return this->time;
+    }
+    const time_t& operator()(time_t& defVal) const
+    {
+        return this->HasValue() ? this->time : defVal;
+    }
+
+    JTime& operator=(const std::string& value) override
+    {
+        this->nul = false;
+        this->und = !ToTime(value, this->time);
+        return *this;
+    }
+    JTime& operator=(time_t value)
+    {
+        this->nul = false;
+        this->und = false;
+        this->time = value;
+        return *this;
+    }
+
+protected:
+    static bool ToTime(const std::string& value, time_t& time);
+    static std::string ToString(time_t time);
+
+protected:
+    time_t time;
+};
+
+class JObject : public JField
+{
+public:
+    JType Type() const override
+    {
+        return JType::OBJ;
+    }
+
+    bool IsObj() const override
+    {
+        return true;
+    }
+
+    virtual JField* GetField(const std::string&) = 0;
+    virtual const JField* GetField(const std::string&) const = 0;
+
+    // ForEach() stops and returns true if any callback returns true.
+    virtual bool ForEach(const std::function<bool(const std::string& name, const JField& field)>& cb) const = 0;
+    virtual bool ForEach(const std::function<bool(const std::string& name, const JField& field, void*)>& cb, void*) const = 0;
+    virtual bool ForEach(const std::function<bool(const std::string& name, JField& field)>& cb) = 0;
+    virtual bool ForEach(const std::function<bool(const std::string& name, JField& field, void*)>& cb, void*) = 0;
+
+protected:
+    static JField* GetField(JObject* object, std::size_t offset)
+    {
+        return (JField*)((char*)object + offset);
+    }
+    static const JField* GetField(const JObject* object, std::size_t offset)
+    {
+        return (const JField*)((char*)object + offset);
+    }
 };
 
 class JArray : public JField
@@ -483,167 +676,6 @@ public:
     }
 
     std::vector<T> Value;
-};
-
-template<typename T, typename U>
-class JValue : public JField
-{
-public:
-    JValue() = default;
-    JValue(const T& value) : Value(value)
-    {
-        this->und = false;
-        this->nul = false;
-    }
-    explicit JValue(std::nullptr_t) : JField(nullptr) {}
-
-    virtual U& operator=(const T& value)
-    {
-        this->Value = value;
-        this->und = false;
-        this->nul = false;
-        return (U&)*this;
-    }
-
-    JValue& operator=(std::nullptr_t) override
-    {
-        return (JValue&)JField::operator=(nullptr);
-    }
-
-    const T& ValueOrDefault(const T& defVal) const
-    {
-        return this->HasValue() ? this->Value : defVal;
-    }
-
-    bool operator==(const JValue<T, U>& other)
-    {
-        if (this->und && other.und)
-        {
-            return true;
-        }
-
-        if (this->und != other.und)
-        {
-            return false;
-        }
-
-        if (this->nul && other.nul)
-        {
-            return true;
-        }
-
-        if (this->nul != other.nul)
-        {
-            return false;
-        }
-
-        return this->Value == other.Value;
-    }
-
-    operator const T&() const
-    {
-        return this->Value;
-    }
-
-    const T& operator()() const
-    {
-        return this->Value;
-    }
-
-    const T& operator()(const T& defVal) const
-    {
-        return this->ValueOrDefault(defVal);
-    }
-
-    T Value;
-};
-
-#define JVALUE(T, U, V) U() = default;\
-                        U(T t) : JValue<T, U>(t) {}\
-                        explicit U(std::nullptr_t) : JValue<T, U>(nullptr) {}\
-                        JType Type() const override { return JType::V; }\
-                        using JValue<T, U>::operator=;\
-                        U& operator=(std::nullptr_t) override { return (U&)JValue<T, U>::operator=(nullptr); }
-
-class JInt : public JValue<int64_t, JInt>
-{
-public:
-    JVALUE(int64_t, JInt, INT);
-
-    JInt& operator=(int32_t v)
-    {
-        *this = (int64_t)v;
-        return *this;
-    }
-
-    JInt& operator=(uint32_t v)
-    {
-        *this = (int64_t)v;
-        return *this;
-    }
-};
-
-class JNum : public JValue<double, JNum>
-{
-public:
-    JVALUE(double, JNum, NUM);
-};
-
-class JStr : public JValue<std::string, JStr>
-{
-public:
-    JVALUE(std::string, JStr, STR);
-
-    void Clear() override
-    {
-        this->Value.clear();
-        JValue<std::string, JStr>::Clear();
-    }
-};
-
-class JBool : public JValue<bool, JBool>
-{
-public:
-    JVALUE(bool, JBool, BOOL);
-};
-
-class JDate : public JValue<time_t, JDate>
-{
-public:
-    JVALUE(time_t, JDate, DATE);
-};
-
-class JObject : public JField
-{
-public:
-    JType Type() const override
-    {
-        return JType::OBJ;
-    }
-
-    bool IsObj() const override
-    {
-        return true;
-    }
-
-    virtual JField* GetField(const std::string&) = 0;
-    virtual const JField* GetField(const std::string&) const = 0;
-
-    // ForEach() stops and returns true if any callback returns true.
-    virtual bool ForEach(const std::function<bool(const std::string& name, const JField& field)>& cb) const = 0;
-    virtual bool ForEach(const std::function<bool(const std::string& name, const JField& field, void*)>& cb, void*) const = 0;
-    virtual bool ForEach(const std::function<bool(const std::string& name, JField& field)>& cb) = 0;
-    virtual bool ForEach(const std::function<bool(const std::string& name, JField& field, void*)>& cb, void*) = 0;
-
-protected:
-    static JField* GetField(JObject* object, std::size_t offset)
-    {
-        return (JField*)((char*)object + offset);
-    }
-    static const JField* GetField(const JObject* object, std::size_t offset)
-    {
-        return (const JField*)((char*)object + offset);
-    }
 };
 
 class JVariant : public JField
@@ -1086,7 +1118,6 @@ public:
     static void         Serialize(std::ostream& json, const JField& field);
     static void         Deserialize(std::istream& json, JField& field);
 
-private:
     static void         GetVal(std::istream& json, const std::string& name, JField* field);
     static void         GetArr(std::istream& json, const std::string& name, JField* arr);
     static void         GetObj(std::istream& json, JField* obj);
@@ -1098,7 +1129,6 @@ private:
     static int64_t      GetInt(const std::string& num);
     static int64_t      GetInt(const std::string& json, std::string::size_type& off);
     static std::string  GetName(std::istream& json);
-    static time_t       GetDate(std::istream& json);
     static bool         GetBool(std::istream& json);
     static uint64_t     GetUint(std::istream& json);
     static uint64_t     GetUint(const std::string& json, std::string::size_type& off);
@@ -1108,6 +1138,5 @@ private:
     static void GetJson(const JVariant& var, std::ostream& json);
     static void GetJson(const JObject& obj, std::ostream& json);
     static void GetJson(const JArray& arr, std::ostream& json);
-    static void GetJson(const JDate& date, std::ostream& json);
     static void GetJson(const JStr& str, std::ostream& json);
 };
