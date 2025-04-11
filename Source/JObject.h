@@ -324,6 +324,44 @@ public:
     bool Deserialize(const std::string& json, std::string& error, std::size_t& where);
     bool Deserialize(std::string&& json, std::string& error, std::size_t& where);
 
+    // used by JParser
+    virtual void Set(const bool& value)
+    {
+        throw std::runtime_error("Invalid field type");
+    }
+    virtual void Set(const int64_t& value)
+    {
+        throw std::runtime_error("Invalid field type");
+    }
+    virtual void Set(const double& value)
+    {
+        throw std::runtime_error("Invalid field type");
+    }
+    virtual void Set(const std::string& value)
+    {
+        throw std::runtime_error("Invlaid field type");
+    }
+    virtual void Set(const std::nullptr_t)
+    {
+        this->operator=(nullptr);
+    }
+    virtual bool    GetB() const
+    {
+        throw std::runtime_error("Invlaid field type");
+    }
+    virtual int64_t GetI() const
+    {
+        throw std::runtime_error("Invlaid field type");
+    }
+    virtual double  GetN() const
+    {
+        throw std::runtime_error("Invlaid field type");
+    }
+    virtual const std::string& GetS() const
+    {
+        throw std::runtime_error("Invlaid field type");
+    }
+
 protected:
     bool und;
     bool nul;
@@ -341,6 +379,11 @@ public:
     }
     explicit JValue(std::nullptr_t) : JField(nullptr) {}
 
+    const T& ValueOrDefault(const T& defVal) const
+    {
+        return this->HasValue() ? this->Value : defVal;
+    }
+
     virtual U& operator=(const T& value)
     {
         this->Value = value;
@@ -352,11 +395,6 @@ public:
     JValue& operator=(std::nullptr_t) override
     {
         return (JValue&)JField::operator=(nullptr);
-    }
-
-    const T& ValueOrDefault(const T& defVal) const
-    {
-        return this->HasValue() ? this->Value : defVal;
     }
 
     bool operator==(const JValue<T, U>& other)
@@ -399,6 +437,11 @@ public:
         return this->ValueOrDefault(defVal);
     }
 
+    void Set(const T& value) override
+    {
+        this->operator=(value);
+    }
+
     T Value;
 };
 
@@ -413,6 +456,11 @@ class JBool : public JValue<bool, JBool>
 {
 public:
     JVALUE(bool, JBool, BOOL);
+
+    bool GetB() const override
+    {
+        return this->Value;
+    }
 };
 
 class JInt : public JValue<int64_t, JInt>
@@ -431,12 +479,22 @@ public:
         *this = (int64_t)v;
         return *this;
     }
+
+    int64_t GetI() const override
+    {
+        return this->Value;
+    }
 };
 
 class JNum : public JValue<double, JNum>
 {
 public:
     JVALUE(double, JNum, NUM);
+
+    double GetN() const override
+    {
+        return this->Value;
+    }
 };
 
 class JStr : public JValue<std::string, JStr>
@@ -448,6 +506,11 @@ public:
     {
         this->Value.clear();
         JValue<std::string, JStr>::Clear();
+    }
+
+    const std::string& GetS() const override
+    {
+        return this->Value;
     }
 };
 
@@ -706,6 +769,23 @@ public:
     virtual double  Num() const = 0;
     virtual bool    Bool() const = 0;
     virtual const std::string& Str() const = 0;
+
+    void Set(const bool& value) override
+    {
+        this->operator=(value);
+    }
+    void Set(const int64_t& value) override
+    {
+        this->operator=(value);
+    }
+    void Set(const double& value) override
+    {
+        this->operator=(value);
+    }
+    void Set(const std::string& value) override
+    {
+        this->operator=(value);
+    }
 };
 
 class JVar : public JVariant
@@ -1036,8 +1116,6 @@ public:
         return *this;
     }
 
-    JVar& operator=(const JField& field) override;
-
     JVar& operator=(std::nullptr_t) override
     {
         return (JVar&)JField::operator=(nullptr);
@@ -1045,17 +1123,10 @@ public:
 
     JVar& operator=(const JVar& var)
     {
-        this->Clear();
-
-        ((JField&)*this) = var;
-
-        this->str = var.str;
-        this->val = var.val;
-        this->fields = var.fields;
-        this->subtype = var.subtype;
-
-        return *this;
+        return this->operator=((JField&)var);
     }
+
+    JVar& operator=(const JField& field) override;
 
     int64_t Int() const override
     {
@@ -1138,5 +1209,5 @@ public:
     static void GetJson(const JVariant& var, std::ostream& json);
     static void GetJson(const JObject& obj, std::ostream& json);
     static void GetJson(const JArray& arr, std::ostream& json);
-    static void GetJson(const JStr& str, std::ostream& json);
+    static void GetJson(const std::string& str, std::ostream& json);
 };

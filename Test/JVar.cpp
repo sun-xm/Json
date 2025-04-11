@@ -374,6 +374,37 @@ bool Asign()
         }
     }
 
+    if (!jvar.Deserialize("{\"int\":1,\"arr\":[1,2,3]}"))
+    {
+        return false;
+    }
+
+    JVar copy;
+    copy = jvar;
+    if (!copy.HasValue() || JType::OBJ != copy.Subtype())
+    {
+        return false;
+    }
+
+    auto& vint = copy["int"];
+    if (JType::INT != vint.Subtype() || !vint.HasValue() || 1 != vint.Int())
+    {
+        return false;
+    }
+
+    auto& varr = copy["arr"];
+    if (JType::ARR != varr.Subtype() || !varr.HasValue() || 3 != varr.Size())
+    {
+        return false;
+    }
+
+    if (JType::INT != varr[0].Subtype() || !varr[0].HasValue() || 1 != varr[0].Int() ||
+        JType::INT != varr[1].Subtype() || !varr[1].HasValue() || 2 != varr[1].Int() ||
+        JType::INT != varr[2].Subtype() || !varr[2].HasValue() || 3 != varr[2].Int())
+    {
+        return false;
+    }
+
     return true;
 }
 

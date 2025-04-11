@@ -293,19 +293,19 @@ bool JVar::ToArr(JArray& arr, string& err) const
                 {
                     case JType::INT:
                     {
-                        *(JInt*)item = var.Int();
+                        item->Set(var.Int());
                         break;
                     }
 
                     case JType::NUM:
                     {
-                        *(JNum*)item = var.Num();
+                        item->Set(var.Num());
                         break;
                     }
 
                     case JType::STR:
                     {
-                        *(JStr*)item = var.Str();
+                        item->Set(var.Str());
                         break;
                     }
 
@@ -332,7 +332,7 @@ bool JVar::ToArr(JArray& arr, string& err) const
             }
             else if (JType::NUM == item->Type() && JType::INT == var.Subtype())
             {
-                *(JNum*)item = (double)var.Int();
+                item->Set((double)var.Int());
             }
             else
             {
@@ -402,19 +402,19 @@ bool JVar::ToObj(JObject& obj, string& err) const
                 {
                     case JType::INT:
                     {
-                        *(JInt*)field = var.Int();
+                        field->Set(var.Int());
                         break;
                     }
 
                     case JType::NUM:
                     {
-                        *(JNum*)field = var.Num();
+                        field->Set(var.Num());
                         break;
                     }
 
                     case JType::STR:
                     {
-                        *(JStr*)field = var.Str();
+                        field->Set(var.Str());
                         break;
                     }
 
@@ -441,7 +441,7 @@ bool JVar::ToObj(JObject& obj, string& err) const
             }
             else if (JType::NUM == field->Type() && JType::INT == var.Subtype())
             {
-                *(JNum*)field = (double)var.Int();
+                field->Set((double)var.Int());
             }
             else
             {
@@ -478,25 +478,25 @@ JVar& JVar::operator=(const JField& field)
     {
         case JType::INT:
         {
-            *this = ((JInt&)field)();
+            *this = field.GetI();
             break;
         }
 
         case JType::NUM:
         {
-            *this = ((JNum&)field)();
+            *this = field.GetN();
             break;
         }
 
         case JType::STR:
         {
-            *this = ((JStr&)field)();
+            *this = field.GetS();
             break;
         }
 
         case JType::BOOL:
         {
-            *this = ((JBool&)field)();
+            *this =field.GetB();
             break;
         }
 
@@ -526,7 +526,55 @@ JVar& JVar::operator=(const JField& field)
 
         case JType::VAR:
         {
-            *this = (JVar&)field;
+            auto& var = (JVariant&)field;
+            switch (var.Subtype())
+            {
+                case JType::BOOL:
+                {
+                    *this = var.Bool();
+                    break;
+                }
+
+                case JType::INT:
+                {
+                    *this = var.Int();
+                    break;
+                }
+
+                case JType::NUM:
+                {
+                    *this = var.Num();
+                    break;
+                }
+
+                case JType::STR:
+                {
+                    *this = var.Str();
+                    break;
+                }
+
+                case JType::ARR:
+                {
+                    function<void(const JVariant&)> foreach = [this](const JVariant& var)
+                    {
+                        (*this->NewItem()) = var;
+                    };
+                    var.ForEach(foreach);
+                    break;
+                }
+
+                case JType::OBJ:
+                {
+                    function<void(const string&, const JVariant&)> foreach = [this](const string& name, const JVariant& var)
+                    {
+                        (*this->GetField(name)) = var;
+                    };
+                    var.ForEach(foreach);
+                    break;
+                }
+
+                default: break; // ignore JType::VAR
+            }
             break;
         }
 
@@ -651,13 +699,9 @@ void JParser::GetVal(istream& json, const string& name, JField* field)
         {
             if (field)
             {
-                if (JType::STR == field->Type())
+                if (JType::STR == field->Type() || JType::VAR == field->Type())
                 {
-                    *(JStr*)field = GetStr(json);
-                }
-                else if (JType::VAR == field->Type())
-                {
-                    *(JVariant*)field = GetStr(json);
+                    field->Set(GetStr(json));
                 }
                 else
                 {
@@ -683,13 +727,9 @@ void JParser::GetVal(istream& json, const string& name, JField* field)
                 {
                     if (field)
                     {
-                        if (JType::BOOL == field->Type())
+                        if (JType::BOOL == field->Type() || JType::VAR == field->Type())
                         {
-                            *(JBool*)field = GetBool(json);
-                        }
-                        else if (JType::VAR == field->Type())
-                        {
-                            *(JVariant*)field = GetBool(json);
+                            field->Set(GetBool(json));
                         }
                         else
                         {
@@ -733,13 +773,13 @@ void JParser::GetVal(istream& json, const string& name, JField* field)
                             {
                                 case JType::INT:
                                 {
-                                    *(JInt*)field = GetInt(json);
+                                    field->Set(GetInt(json));
                                     break;
                                 }
 
                                 case JType::NUM:
                                 {
-                                    *(JNum*)field = GetFlt(json);
+                                    field->Set(GetFlt(json));
                                     break;
                                 }
 
@@ -748,11 +788,11 @@ void JParser::GetVal(istream& json, const string& name, JField* field)
                                     auto num = GetNum(json);
                                     if (IsFloat(num))
                                     {
-                                        *(JVariant*)field = GetFlt(num);
+                                        field->Set(GetFlt(num));
                                     }
                                     else
                                     {
-                                        *(JVariant*)field = GetInt(num);
+                                        field->Set(GetInt(num));
                                     }
                                     break;
                                 }
@@ -1465,19 +1505,19 @@ void JParser::GetJson(const string& name, const JField& field, ostream& json)
     switch (field.Type())
     {
     case JType::INT:
-        json << (JInt&)field;
+        json << field.GetI();
         break;
 
     case JType::NUM:
-        json << setprecision(numeric_limits<double>::digits10 + 1) << (JNum&)field;
+        json << setprecision(numeric_limits<double>::digits10 + 1) << field.GetN();
         break;
 
     case JType::BOOL:
-        json << ((JBool&)field ? "true" : "false");
+        json << (field.GetB() ? "true" : "false");
         break;
 
     case JType::STR:
-        GetJson((JStr&)field, json);
+        GetJson(field.GetS(), json);
         break;
 
     case JType::OBJ:
@@ -1544,11 +1584,11 @@ void JParser::GetJson(const JArray& arr, ostream& json)
     json << ']';
 }
 
-void JParser::GetJson(const JStr& str, ostream& json)
+void JParser::GetJson(const string& str, ostream& json)
 {
     json << '\"';
 
-    for (auto c : str.Value)
+    for (auto c : str)
     {
         switch (c)
         {
