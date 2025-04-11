@@ -698,11 +698,6 @@ void JParser::GetVal(istream& json, const string& name, JField* field)
 
 void JParser::GetArr(istream& json, const string& name, JField* arr)
 {
-    if (arr && JType::VAR == arr->Type())
-    {
-        ((JVariant*)arr)->Subtype(JType::ARR);
-    }
-
     auto c = FirstNotSpace(json);
     if (']' == c)
     {
@@ -734,11 +729,6 @@ void JParser::GetArr(istream& json, const string& name, JField* arr)
 
 void JParser::GetObj(istream& json, JField* obj)
 {
-    if (obj && JType::VAR == obj->Type())
-    {
-        ((JVariant*)obj)->Subtype(JType::OBJ);
-    }
-
     auto c = FirstNotSpace(json);
     if ('}' == c)
     {

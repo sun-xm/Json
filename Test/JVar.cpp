@@ -96,7 +96,7 @@ bool Deserialize()
         return false;
     }
 
-    if (!jvar.Deserialize("[]") || !jvar.IsUndefined() || jvar.HasValue() || JType::ARR != jvar.Subtype() || jvar.Size())
+    if (!jvar.Deserialize("[]") || !jvar.IsUndefined() || jvar.HasValue() || JType::VAR != jvar.Subtype() || jvar.Size())
     {
         return false;
     }
@@ -114,7 +114,7 @@ bool Deserialize()
         }
     }
 
-    if (!jvar.Deserialize("{}") || !jvar.IsUndefined() || jvar.HasValue() || JType::OBJ != jvar.Subtype() || 0 != jvar.Size())
+    if (!jvar.Deserialize("{}") || !jvar.IsUndefined() || jvar.HasValue() || JType::VAR != jvar.Subtype() || 0 != jvar.Size())
     {
         return false;
     }

@@ -649,7 +649,6 @@ protected:
 class JVariant : public JField
 {
 public:
-    virtual void  Subtype(JType subtype) = 0;
     virtual JType Subtype() const = 0;
 
     virtual JVariant* NewItem() = 0;
@@ -725,18 +724,18 @@ public:
         return JType::OBJ == this->subtype;
     }
 
-    void Subtype(JType subtype) override
+    JType Subtype() const override
+    {
+        return this->subtype;
+    }
+
+    void Subtype(JType subtype)
     {
         if (this->subtype != subtype)
         {
             this->Clear();
         }
         this->subtype = subtype;
-    }
-
-    virtual JType Subtype() const override
-    {
-        return this->subtype;
     }
 
     virtual std::size_t Size() const
