@@ -270,7 +270,21 @@ enum class JType
     VAR
 };
 
-class JField
+struct JBase
+{
+    virtual void Set(const bool&) = 0;
+    virtual void Set(const int64_t&) = 0;
+    virtual void Set(const double&) = 0;
+    virtual void Set(const std::string&) = 0;
+    virtual void Set(std::nullptr_t) = 0;
+
+    virtual bool    GetB() const = 0;
+    virtual int64_t GetI() const = 0;
+    virtual double  GetN() const = 0;
+    virtual const std::string& GetS() const = 0;
+};
+
+class JField : protected JBase
 {
 public:
     JField() : und(true), nul(false) {}
@@ -324,40 +338,41 @@ public:
     bool Deserialize(const std::string& json, std::string& error, std::size_t& where);
     bool Deserialize(std::string&& json, std::string& error, std::size_t& where);
 
-    // used by JParser
-    virtual void Set(const bool& value)
+protected:
+    void Set(const bool& value) override
     {
         throw std::runtime_error("Invalid field type");
     }
-    virtual void Set(const int64_t& value)
+    void Set(const int64_t& value) override
     {
         throw std::runtime_error("Invalid field type");
     }
-    virtual void Set(const double& value)
+    void Set(const double& value) override
     {
         throw std::runtime_error("Invalid field type");
     }
-    virtual void Set(const std::string& value)
+    void Set(const std::string& value) override
     {
         throw std::runtime_error("Invlaid field type");
     }
-    virtual void Set(const std::nullptr_t)
+    void Set(std::nullptr_t) override
     {
         this->operator=(nullptr);
     }
-    virtual bool    GetB() const
+
+    bool    GetB() const override
     {
         throw std::runtime_error("Invlaid field type");
     }
-    virtual int64_t GetI() const
+    int64_t GetI() const override
     {
         throw std::runtime_error("Invlaid field type");
     }
-    virtual double  GetN() const
+    double  GetN() const override
     {
         throw std::runtime_error("Invlaid field type");
     }
-    virtual const std::string& GetS() const
+    const std::string& GetS() const override
     {
         throw std::runtime_error("Invlaid field type");
     }
@@ -754,38 +769,6 @@ public:
 
     virtual void ForEach(const std::function<void(const std::string&, const JVariant&)>&) const = 0;
     virtual void ForEach(const std::function<void(const JVariant&)>&) const = 0;
-
-    virtual JVariant& operator=(int64_t) = 0;
-    virtual JVariant& operator=(int32_t) = 0;
-    virtual JVariant& operator=(double) = 0;
-    virtual JVariant& operator=(float) = 0;
-    virtual JVariant& operator=(bool) = 0;
-    virtual JVariant& operator=(const std::string&) = 0;
-    virtual JVariant& operator=(const char*) = 0;
-    virtual JVariant& operator=(const JField&) = 0;
-    virtual JVariant& operator=(std::nullptr_t) = 0;
-
-    virtual int64_t Int() const = 0;
-    virtual double  Num() const = 0;
-    virtual bool    Bool() const = 0;
-    virtual const std::string& Str() const = 0;
-
-    void Set(const bool& value) override
-    {
-        this->operator=(value);
-    }
-    void Set(const int64_t& value) override
-    {
-        this->operator=(value);
-    }
-    void Set(const double& value) override
-    {
-        this->operator=(value);
-    }
-    void Set(const std::string& value) override
-    {
-        this->operator=(value);
-    }
 };
 
 class JVar : public JVariant
@@ -1061,7 +1044,13 @@ public:
         return this->fields.find(field)->second;
     }
 
-    JVar& operator=(int64_t value) override
+    JVar& operator=(std::nullptr_t) override
+    {
+        JField::operator=(nullptr);
+        return *this;
+    }
+
+    JVar& operator=(int64_t value)
     {
         this->Subtype(JType::INT);
         this->und = false;
@@ -1070,12 +1059,12 @@ public:
         return *this;
     }
 
-    JVar& operator=(int32_t value) override
+    JVar& operator=(int32_t value)
     {
-        return (*this = (int64_t)value);
+        return this->operator=((int64_t)value);
     }
 
-    JVar& operator=(double value) override
+    JVar& operator=(double value)
     {
         this->Subtype(JType::NUM);
         this->und = false;
@@ -1084,12 +1073,12 @@ public:
         return *this;
     }
 
-    JVar& operator=(float value) override
+    JVar& operator=(float value)
     {
-        return (*this = (double)value);
+        return this->operator=((double)value);
     }
 
-    JVar& operator=(bool value) override
+    JVar& operator=(bool value)
     {
         this->Subtype(JType::BOOL);
         this->und = false;
@@ -1098,7 +1087,7 @@ public:
         return *this;
     }
 
-    JVar& operator=(const std::string& value) override
+    JVar& operator=(const std::string& value)
     {
         this->Subtype(JType::STR);
         this->und = false;
@@ -1107,18 +1096,13 @@ public:
         return *this;
     }
 
-    JVar& operator=(const char* value) override
+    JVar& operator=(const char* value)
     {
         this->Subtype(JType::STR);
         this->und = false;
         this->nul = false;
         this->str = value;
         return *this;
-    }
-
-    JVar& operator=(std::nullptr_t) override
-    {
-        return (JVar&)JField::operator=(nullptr);
     }
 
     JVar& operator=(const JVar& var)
@@ -1126,9 +1110,9 @@ public:
         return this->operator=((JField&)var);
     }
 
-    JVar& operator=(const JField& field) override;
+    JVar& operator=(const JField& field);
 
-    int64_t Int() const override
+    int64_t Int() const
     {
         return this->val.i;
     }
@@ -1138,7 +1122,7 @@ public:
         return (JType::INT == this->subtype && this->HasValue()) ? this->Int() : defVal;
     }
 
-    double Num() const override
+    double Num() const
     {
         return this->val.n;
     }
@@ -1148,7 +1132,7 @@ public:
         return (JType::NUM == this->subtype && this->HasValue()) ? this->Num() : defVal;
     }
 
-    bool Bool() const override
+    bool Bool() const
     {
         return this->val.b;
     }
@@ -1158,7 +1142,7 @@ public:
         return (JType::BOOL == this->subtype && this->HasValue()) ? this->Bool() : defVal;
     }
 
-    const std::string& Str() const override
+    const std::string& Str() const
     {
         return this->str;
     }
@@ -1166,6 +1150,41 @@ public:
     const std::string& Str(const std::string& defVal) const
     {
         return (JType::STR == this->subtype && this->HasValue()) ? this->Str() : defVal;
+    }
+
+protected:
+    void Set(const bool& value) override
+    {
+        *this = value;
+    }
+    void Set(const int64_t& value) override
+    {
+        *this = value;
+    }
+    void Set(const double& value) override
+    {
+        *this = value;
+    }
+    void Set(const std::string& value) override
+    {
+        *this = value;
+    }
+
+    bool    GetB() const override
+    {
+        return this->Bool();
+    }
+    int64_t GetI() const override
+    {
+        return this->Int();
+    }
+    double  GetN() const override
+    {
+        return this->Num();
+    }
+    const std::string& GetS() const override
+    {
+        return this->Str();
     }
 
 protected:

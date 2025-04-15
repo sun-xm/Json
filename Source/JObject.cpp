@@ -293,19 +293,19 @@ bool JVar::ToArr(JArray& arr, string& err) const
                 {
                     case JType::INT:
                     {
-                        item->Set(var.Int());
+                        ((JBase*)item)->Set(var.Int());
                         break;
                     }
 
                     case JType::NUM:
                     {
-                        item->Set(var.Num());
+                        ((JBase*)item)->Set(var.Num());
                         break;
                     }
 
                     case JType::STR:
                     {
-                        item->Set(var.Str());
+                        ((JBase*)item)->Set(var.Str());
                         break;
                     }
 
@@ -332,7 +332,7 @@ bool JVar::ToArr(JArray& arr, string& err) const
             }
             else if (JType::NUM == item->Type() && JType::INT == var.Subtype())
             {
-                item->Set((double)var.Int());
+                ((JBase*)item)->Set((double)var.Int());
             }
             else
             {
@@ -402,19 +402,19 @@ bool JVar::ToObj(JObject& obj, string& err) const
                 {
                     case JType::INT:
                     {
-                        field->Set(var.Int());
+                        ((JBase*)field)->Set(var.Int());
                         break;
                     }
 
                     case JType::NUM:
                     {
-                        field->Set(var.Num());
+                        ((JBase*)field)->Set(var.Num());
                         break;
                     }
 
                     case JType::STR:
                     {
-                        field->Set(var.Str());
+                        ((JBase*)field)->Set(var.Str());
                         break;
                     }
 
@@ -441,7 +441,7 @@ bool JVar::ToObj(JObject& obj, string& err) const
             }
             else if (JType::NUM == field->Type() && JType::INT == var.Subtype())
             {
-                field->Set((double)var.Int());
+                ((JBase*)field)->Set((double)var.Int());
             }
             else
             {
@@ -478,25 +478,25 @@ JVar& JVar::operator=(const JField& field)
     {
         case JType::INT:
         {
-            *this = field.GetI();
+            *this = ((JBase&)field).GetI();
             break;
         }
 
         case JType::NUM:
         {
-            *this = field.GetN();
+            *this = ((JBase&)field).GetN();
             break;
         }
 
         case JType::STR:
         {
-            *this = field.GetS();
+            *this = ((JBase&)field).GetS();
             break;
         }
 
         case JType::BOOL:
         {
-            *this =field.GetB();
+            *this =((JBase&)field).GetB();
             break;
         }
 
@@ -531,25 +531,25 @@ JVar& JVar::operator=(const JField& field)
             {
                 case JType::BOOL:
                 {
-                    *this = var.Bool();
+                    *this = ((JBase&)var).GetB();
                     break;
                 }
 
                 case JType::INT:
                 {
-                    *this = var.Int();
+                    *this = ((JBase&)var).GetI();
                     break;
                 }
 
                 case JType::NUM:
                 {
-                    *this = var.Num();
+                    *this = ((JBase&)var).GetN();
                     break;
                 }
 
                 case JType::STR:
                 {
-                    *this = var.Str();
+                    *this = ((JBase&)var).GetS();
                     break;
                 }
 
@@ -701,7 +701,7 @@ void JParser::GetVal(istream& json, const string& name, JField* field)
             {
                 if (JType::STR == field->Type() || JType::VAR == field->Type())
                 {
-                    field->Set(GetStr(json));
+                    ((JBase*)field)->Set(GetStr(json));
                 }
                 else
                 {
@@ -729,7 +729,7 @@ void JParser::GetVal(istream& json, const string& name, JField* field)
                     {
                         if (JType::BOOL == field->Type() || JType::VAR == field->Type())
                         {
-                            field->Set(GetBool(json));
+                            ((JBase*)field)->Set(GetBool(json));
                         }
                         else
                         {
@@ -773,13 +773,13 @@ void JParser::GetVal(istream& json, const string& name, JField* field)
                             {
                                 case JType::INT:
                                 {
-                                    field->Set(GetInt(json));
+                                    ((JBase*)field)->Set(GetInt(json));
                                     break;
                                 }
 
                                 case JType::NUM:
                                 {
-                                    field->Set(GetFlt(json));
+                                    ((JBase*)field)->Set(GetFlt(json));
                                     break;
                                 }
 
@@ -788,11 +788,11 @@ void JParser::GetVal(istream& json, const string& name, JField* field)
                                     auto num = GetNum(json);
                                     if (IsFloat(num))
                                     {
-                                        field->Set(GetFlt(num));
+                                        ((JBase*)field)->Set(GetFlt(num));
                                     }
                                     else
                                     {
-                                        field->Set(GetInt(num));
+                                        ((JBase*)field)->Set(GetInt(num));
                                     }
                                     break;
                                 }
@@ -1385,19 +1385,19 @@ void JParser::GetJson(const JVariant& var, ostream& json)
     {
         case JType::BOOL:
         {
-            json << (var.Bool() ? "true" : "false");
+            json << (((JBase&)var).GetB() ? "true" : "false");
             break;
         }
 
         case JType::INT:
         {
-            json << var.Int();
+            json << ((JBase&)var).GetI();
             break;
         }
 
         case JType::NUM:
         {
-            json << setprecision(numeric_limits<double>::digits10 + 1) << var.Num();
+            json << setprecision(numeric_limits<double>::digits10 + 1) << ((JBase&)var).GetN();
             break;
         }
 
@@ -1405,7 +1405,7 @@ void JParser::GetJson(const JVariant& var, ostream& json)
         {
             json << '\"';
 
-            for (auto c : var.Str())
+            for (auto c : ((JBase&)var).GetS())
             {
                 switch (c)
                 {
@@ -1505,19 +1505,19 @@ void JParser::GetJson(const string& name, const JField& field, ostream& json)
     switch (field.Type())
     {
     case JType::INT:
-        json << field.GetI();
+        json << ((JBase&)field).GetI();
         break;
 
     case JType::NUM:
-        json << setprecision(numeric_limits<double>::digits10 + 1) << field.GetN();
+        json << setprecision(numeric_limits<double>::digits10 + 1) << ((JBase&)field).GetN();
         break;
 
     case JType::BOOL:
-        json << (field.GetB() ? "true" : "false");
+        json << (((JBase&)field).GetB() ? "true" : "false");
         break;
 
     case JType::STR:
-        GetJson(field.GetS(), json);
+        GetJson(((JBase&)field).GetS(), json);
         break;
 
     case JType::OBJ:
