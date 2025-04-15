@@ -748,7 +748,6 @@ public:
 
     JArr& operator=(std::nullptr_t) override
     {
-        this->Value.clear();
         JField::operator=(nullptr);
         return *this;
     }
