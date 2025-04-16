@@ -277,6 +277,46 @@ bool ToObj()
     return true;
 }
 
+bool Array()
+{
+    JVar jvar;
+
+    jvar.Push(0);
+    if (!jvar.HasValue() || JType::ARR != jvar.Subtype() || 1 != jvar.Length() || 0 != jvar[0].Int())
+    {
+        return false;
+    }
+
+    jvar.Unshift(1.0);
+    if (2 != jvar.Length() || 1.0 != jvar[0].Num())
+    {
+        return false;
+    }
+
+    jvar.Insert("hello", 1);
+    if (3 != jvar.Length() || "hello" != jvar[1].Str())
+    {
+        return false;
+    }
+
+    jvar.RemoveAt(0);
+    if (2 != jvar.Length() || "hello" != jvar[0].Str())
+    {
+        return false;
+    }
+
+    jvar.RemoveIf([](size_t index, const JVar& item)
+    {
+        return 0 == index && JType::STR == item.Subtype();
+    });
+    if (1 != jvar.Length() || 0 != jvar[0].Int())
+    {
+        return false;
+    }
+
+    return true;
+}
+
 bool Asign()
 {
     JVar jvar;
@@ -441,39 +481,6 @@ bool Compose()
         return false;
     }
 
-    jvar.Push(JVar() = 0);
-    if (!jvar.HasValue() || JType::ARR != jvar.Subtype() || 1 != jvar.Length() || 0 != jvar[0].Int())
-    {
-        return false;
-    }
-
-    jvar.Unshift(JVar() = 1.0);
-    if (2 != jvar.Length() || 1.0 != jvar[0].Num())
-    {
-        return false;
-    }
-
-    jvar.Insert(JVar() = "hello", 1);
-    if (3 != jvar.Length() || "hello" != jvar[1].Str())
-    {
-        return false;
-    }
-
-    jvar.RemoveAt(0);
-    if (2 != jvar.Length() || "hello" != jvar[0].Str())
-    {
-        return false;
-    }
-
-    jvar.RemoveIf([](size_t index, const JVar& item)
-    {
-        return JType::STR == item.Subtype();
-    });
-    if (1 != jvar.Length() || 0 != jvar[0].Int())
-    {
-        return false;
-    }
-
     return true;
 }
 
@@ -528,6 +535,11 @@ int main()
     }
 
     if (!ToObj())
+    {
+        return -1;
+    }
+
+    if (!Array())
     {
         return -1;
     }

@@ -774,6 +774,32 @@ class JVar : public JVariant
 {
 public:
     JVar() : subtype(JType::VAR), items(nullptr) {}
+    JVar(std::nullptr_t)
+    {
+        *this = nullptr;
+    }
+    JVar(bool value)
+    {
+        *this = value;
+    }
+    JVar(int64_t value)
+    {
+        *this = value;
+    }
+    JVar(double value)
+    {
+        *this = value;
+    }
+    JVar(const std::string& value)
+    {
+        *this = value;
+    }
+    JVar(int value) : JVar((int64_t)value)
+    {
+    }
+    JVar(const char* value) : JVar(std::string(value))
+    {
+    }
    ~JVar()
     {
         if (JType::ARR == this->subtype && this->items)
@@ -856,25 +882,23 @@ public:
         return (JType::OBJ == this->subtype ? this->fields->end() != this->fields->find(name) : false);
     }
 
+    // Array operations
     void Insert(const JVar& item, std::size_t before)
     {
         this->Subtype(JType::ARR);
         auto itr = this->items->begin() + (before > this->items->size() ? this->items->size() : before);
         this->items->insert(itr, item);
     }
-
     void Push(const JVar& item)
     {
         this->Subtype(JType::ARR);
         this->items->push_back(item);
     }
-
     void Unshift(const JVar& item)
     {
         this->Subtype(JType::ARR);
         this->items->insert(this->items->begin(), item);
     }
-
     void RemoveAt(size_t index)
     {
         if (JType::ARR == this->subtype && index < this->items->size())
@@ -882,7 +906,6 @@ public:
             this->items->erase(this->items->begin() + index);
         }
     }
-
     void RemoveIf(const std::function<bool(size_t index, const JVar& item)>& pred)
     {
         if (JType::ARR == this->subtype && pred)
