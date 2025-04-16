@@ -96,12 +96,12 @@ bool Deserialize()
         return false;
     }
 
-    if (!jvar.Deserialize("[]") || !jvar.IsUndefined() || jvar.HasValue() || JType::VAR != jvar.Subtype() || jvar.Size())
+    if (!jvar.Deserialize("[]") || !jvar.IsUndefined() || jvar.HasValue() || JType::VAR != jvar.Subtype() || jvar.Length())
     {
         return false;
     }
 
-    if (!jvar.Deserialize("[0, 1, 2]") || !jvar.HasValue() || JType::ARR != jvar.Subtype() || 3 != jvar.Size())
+    if (!jvar.Deserialize("[0, 1, 2]") || !jvar.HasValue() || JType::ARR != jvar.Subtype() || 3 != jvar.Length())
     {
         return false;
     }
@@ -114,7 +114,7 @@ bool Deserialize()
         }
     }
 
-    if (!jvar.Deserialize("{}") || !jvar.IsUndefined() || jvar.HasValue() || JType::VAR != jvar.Subtype() || 0 != jvar.Size())
+    if (!jvar.Deserialize("{}") || !jvar.IsUndefined() || jvar.HasValue() || JType::VAR != jvar.Subtype() || 0 != jvar.Length())
     {
         return false;
     }
@@ -134,7 +134,7 @@ bool Deserialize()
         return false;
     }
 
-    if (!jvar["arr"].HasValue() || JType::ARR != jvar["arr"].Subtype() || 3 != jvar["arr"].Size())
+    if (!jvar["arr"].HasValue() || JType::ARR != jvar["arr"].Subtype() || 3 != jvar["arr"].Length())
     {
         return false;
     }
@@ -190,7 +190,7 @@ bool ToArr()
         return false;
     }
 
-    if (!ints.HasValue() || 3 != ints().size())
+    if (!ints.HasValue() || 3 != ints.Length())
     {
         return false;
     }
@@ -209,7 +209,7 @@ bool ToArr()
         return false;
     }
 
-    if (!nums.HasValue() || 3 != nums().size())
+    if (!nums.HasValue() || 3 != nums.Length())
     {
         return false;
     }
@@ -263,7 +263,7 @@ bool ToObj()
     }
 
     auto& ints = jouter.ints;
-    if (3 != ints().size() || 1 != ints[0] || 2 != ints[1] || !ints[2].IsNull())
+    if (3 != ints.Length() || 1 != ints[0] || 2 != ints[1] || !ints[2].IsNull())
     {
         return false;
     }
@@ -318,7 +318,7 @@ bool Asign()
     }
 
     jvar = jarr;
-    if (!jvar.HasValue() || JType::ARR != jvar.Subtype() || 3 != jvar.Size())
+    if (!jvar.HasValue() || JType::ARR != jvar.Subtype() || 3 != jvar.Length())
     {
         return false;
     }
@@ -361,7 +361,7 @@ bool Asign()
         return false;
     }
 
-    if (JType::ARR != jvar["ints"].Subtype() || 2 != jvar["ints"].Size())
+    if (JType::ARR != jvar["ints"].Subtype() || 2 != jvar["ints"].Length())
     {
         return false;
     }
@@ -393,7 +393,7 @@ bool Asign()
     }
 
     auto& varr = copy["arr"];
-    if (JType::ARR != varr.Subtype() || !varr.HasValue() || 3 != varr.Size())
+    if (JType::ARR != varr.Subtype() || !varr.HasValue() || 3 != varr.Length())
     {
         return false;
     }
@@ -437,6 +437,39 @@ bool Compose()
 
     auto& und = ((const JVar&)jvar)["undefined"];
     if (!und.IsUndefined())
+    {
+        return false;
+    }
+
+    jvar.Push(JVar() = 0);
+    if (!jvar.HasValue() || JType::ARR != jvar.Subtype() || 1 != jvar.Length() || 0 != jvar[0].Int())
+    {
+        return false;
+    }
+
+    jvar.Unshift(JVar() = 1.0);
+    if (2 != jvar.Length() || 1.0 != jvar[0].Num())
+    {
+        return false;
+    }
+
+    jvar.Insert(JVar() = "hello", 1);
+    if (3 != jvar.Length() || "hello" != jvar[1].Str())
+    {
+        return false;
+    }
+
+    jvar.RemoveAt(0);
+    if (2 != jvar.Length() || "hello" != jvar[0].Str())
+    {
+        return false;
+    }
+
+    jvar.RemoveIf([](size_t index, const JVar& item)
+    {
+        return JType::STR == item.Subtype();
+    });
+    if (1 != jvar.Length() || 0 != jvar[0].Int())
     {
         return false;
     }

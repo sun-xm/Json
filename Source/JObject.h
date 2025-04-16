@@ -646,26 +646,26 @@ public:
         return this->Value.size();
     }
 
-    void Insert(const T& value, std::size_t before)
+    void Insert(const T& item, std::size_t before)
     {
         auto itr = this->Value.begin() + (before > this->Value.size() ? this->Value.size() : before);
-        this->Value.insert(itr, value);
+        this->Value.insert(itr, item);
     }
 
-    void Insert(const JArr<T>& values, std::size_t before)
+    void Insert(const JArr<T>& items, std::size_t before)
     {
         auto itr = this->Value.begin() + (before > this->Value.size() ? this->Value.size() : before);
-        this->Value.insert(itr, values.Value.begin(), values.Value.end());
+        this->Value.insert(itr, items.Value.begin(), items.Value.end());
     }
 
-    void Push(const T& value)
+    void Push(const T& item)
     {
-        this->Value.push_back(value);
+        this->Value.push_back(item);
     }
 
-    void Unshift(const T& value)
+    void Unshift(const T& item)
     {
-        this->Value.insert(this->Value.begin(), value);
+        this->Value.insert(this->Value.begin(), item);
     }
 
     void RemoveAt(size_t index)
@@ -676,14 +676,14 @@ public:
         }
     }
 
-    void RemoveIf(const std::function<bool(size_t index, const T& value)>& pred)
+    void RemoveIf(const std::function<bool(size_t index, const T& item)>& pred)
     {
         if (pred)
         {
             size_t index = 0;
-            this->Value.erase(std::remove_if(this->Value.begin(), this->Value.end(), [&index, &pred](const T& value)
+            this->Value.erase(std::remove_if(this->Value.begin(), this->Value.end(), [&index, &pred](const T& item)
             {
-                return pred(index++, value);
+                return pred(index++, item);
             }));
         }
     }
@@ -794,15 +794,7 @@ public:
         }
         else if (JType::ARR == this->subtype)
         {
-            for (auto& var : *this->items)
-            {
-                if (!var.IsUndefined())
-                {
-                    return false;
-                }
-            }
-
-            return true;
+            return this->items->empty();
         }
         else if (JType::OBJ == this->subtype)
         {
@@ -820,6 +812,11 @@ public:
         {
             return this->und;
         }
+    }
+
+    bool IsObj() const override
+    {
+        return JType::OBJ == this->subtype;
     }
 
     void Clear() override
@@ -844,17 +841,12 @@ public:
         return JType::VAR;
     }
 
-    bool IsObj() const override
-    {
-        return JType::OBJ == this->subtype;
-    }
-
     JType Subtype() const override
     {
         return this->subtype;
     }
 
-    virtual std::size_t Size() const
+    virtual std::size_t Length() const
     {
         return JType::ARR == this->subtype ? this->items->size() : 0;
     }
@@ -862,6 +854,45 @@ public:
     virtual bool HasField(const std::string& name) const
     {
         return (JType::OBJ == this->subtype ? this->fields->end() != this->fields->find(name) : false);
+    }
+
+    void Insert(const JVar& item, std::size_t before)
+    {
+        this->Subtype(JType::ARR);
+        auto itr = this->items->begin() + (before > this->items->size() ? this->items->size() : before);
+        this->items->insert(itr, item);
+    }
+
+    void Push(const JVar& item)
+    {
+        this->Subtype(JType::ARR);
+        this->items->push_back(item);
+    }
+
+    void Unshift(const JVar& item)
+    {
+        this->Subtype(JType::ARR);
+        this->items->insert(this->items->begin(), item);
+    }
+
+    void RemoveAt(size_t index)
+    {
+        if (JType::ARR == this->subtype && index < this->items->size())
+        {
+            this->items->erase(this->items->begin() + index);
+        }
+    }
+
+    void RemoveIf(const std::function<bool(size_t index, const JVar& item)>& pred)
+    {
+        if (JType::ARR == this->subtype && pred)
+        {
+            size_t index = 0;
+            this->items->erase(std::remove_if(this->items->begin(), this->items->end(), [&index, &pred](const JVar& item)
+            {
+                return pred(index++, item);
+            }));
+        }
     }
 
     // ForEachField()/ForEachItem() stops and returns true if any callback returns true
@@ -978,13 +1009,11 @@ public:
 
     bool ToArr(JArray& arr, std::string& err) const override;
     bool ToObj(JObject& obj, std::string& err) const override;
-
     bool ToArr(JArray& arr) const
     {
         std::string e;
         return this->ToArr(arr, e);
     }
-
     bool ToObj(JObject& obj) const
     {
         std::string err;
