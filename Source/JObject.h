@@ -773,7 +773,18 @@ public:
 class JVar : public JVariant
 {
 public:
-    JVar() : subtype(JType::VAR) {}
+    JVar() : subtype(JType::VAR), items(nullptr) {}
+   ~JVar()
+    {
+        if (JType::ARR == this->subtype && this->items)
+        {
+            delete this->items;
+        }
+        else if (JType::OBJ == this->subtype && this->fields)
+        {
+            delete this->fields;
+        }
+    }
 
     bool IsUndefined() const override
     {
@@ -781,10 +792,21 @@ public:
         {
             return false;
         }
-        else if (JType::ARR == this->subtype ||
-                 JType::OBJ == this->subtype)
+        else if (JType::ARR == this->subtype)
         {
-            for (auto& var : this->fields)
+            for (auto& var : *this->items)
+            {
+                if (!var.IsUndefined())
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+        else if (JType::OBJ == this->subtype)
+        {
+            for (auto& var : *this->fields)
             {
                 if (!var.second.IsUndefined())
                 {
@@ -802,10 +824,19 @@ public:
 
     void Clear() override
     {
-        this->subtype = JType::VAR;
+        if (JType::ARR == this->subtype && this->items)
+        {
+            delete this->items;
+        }
+        else if (JType::OBJ == this->subtype && this->fields)
+        {
+            delete this->fields;
+        }
+
+        this->items = nullptr;
         this->str.clear();
-        this->fields.clear();
         JField::Clear();
+        this->subtype = JType::VAR;
     }
 
     JType Type() const override
@@ -823,23 +854,14 @@ public:
         return this->subtype;
     }
 
-    void Subtype(JType subtype)
-    {
-        if (this->subtype != subtype)
-        {
-            this->Clear();
-        }
-        this->subtype = subtype;
-    }
-
     virtual std::size_t Size() const
     {
-        return (JType::ARR == this->subtype || JType::OBJ == this->subtype) ? this->fields.size() : 0;
+        return JType::ARR == this->subtype ? this->items->size() : 0;
     }
 
     virtual bool HasField(const std::string& name) const
     {
-        return this->fields.end() != this->fields.find(name);
+        return (JType::OBJ == this->subtype ? this->fields->end() != this->fields->find(name) : false);
     }
 
     // ForEachField()/ForEachItem() stops and returns true if any callback returns true
@@ -847,7 +869,7 @@ public:
     {
         if (JType::OBJ == this->subtype && cb)
         {
-            for (auto& pair : this->fields)
+            for (auto& pair : *this->fields)
             {
                 if (cb(pair.first, pair.second))
                 {
@@ -862,7 +884,7 @@ public:
     {
         if (JType::OBJ == this->subtype && cb)
         {
-            for (auto& pair : this->fields)
+            for (auto& pair : *this->fields)
             {
                 if (cb(pair.first, pair.second, param))
                 {
@@ -877,7 +899,7 @@ public:
     {
         if (JType::OBJ == this->subtype && cb)
         {
-            for (auto& pair : this->fields)
+            for (auto& pair : *this->fields)
             {
                 if (cb(pair.first, pair.second))
                 {
@@ -892,7 +914,7 @@ public:
     {
         if (JType::OBJ == this->subtype && cb)
         {
-            for (auto& pair : this->fields)
+            for (auto& pair : *this->fields)
             {
                 if (cb(pair.first, pair.second, param))
                 {
@@ -908,9 +930,9 @@ public:
     {
         if (JType::ARR == this->subtype && cb)
         {
-            for (std::size_t i = 0; i < this->fields.size(); i++)
+            for (auto& item : *this->items)
             {
-                if (cb((*this)[i]))
+                if (cb(item))
                 {
                     return true;
                 }
@@ -923,9 +945,9 @@ public:
     {
         if (JType::ARR == this->subtype && cb)
         {
-            for (std::size_t i = 0; i < this->fields.size(); i++)
+            for (auto& item : *this->items)
             {
-                if (cb((*this)[i]))
+                if (cb(item))
                 {
                     return true;
                 }
@@ -938,21 +960,20 @@ public:
     JVar* NewItem() override
     {
         this->Subtype(JType::ARR);
-
-        auto name = std::to_string(this->fields.size());
-        return &(this->fields[name] = JVar());
+        this->items->push_back(JVar());
+        return &this->items->back();
     }
     JVar* GetField(const std::string& name) override
     {
         this->Subtype(JType::OBJ);
 
-        auto itr = this->fields.find(name);
-        if (this->fields.end() != itr)
+        auto itr = this->fields->find(name);
+        if (this->fields->end() != itr)
         {
             return &itr->second;
         }
 
-        return &(this->fields[name] = JVar());
+        return &(this->fields->operator[](name) = JVar());
     }
 
     bool ToArr(JArray& arr, std::string& err) const override;
@@ -974,7 +995,7 @@ public:
     {
         if (JType::OBJ == this->subtype && cb)
         {
-            for (auto& pair : this->fields)
+            for (auto& pair : *this->fields)
             {
                 cb(pair.first, pair.second);
             }
@@ -984,53 +1005,39 @@ public:
     {
         if (JType::ARR == this->subtype && cb)
         {
-            for (auto& pair : this->fields)
+            for (auto& item : *this->items)
             {
-                cb(pair.second);
+                cb(item);
             }
         }
     }
 
     JVar& operator[](std::size_t index)
     {
-        if (JType::ARR != this->Subtype())
+        if (JType::ARR != this->subtype)
         {
             throw std::out_of_range("Is not an array");
         }
 
-        if (index >= this->fields.size())
-        {
-            throw std::out_of_range("Index is out of range");
-        }
-
-        return this->fields.find(std::to_string(index))->second;
+        return (*this->items)[index];
     }
     const JVar& operator[](std::size_t index) const
     {
-        if (JType::ARR != this->Subtype())
+        if (JType::ARR != this->subtype)
         {
             throw std::out_of_range("Is not an array");
         }
 
-        if (index >= this->fields.size())
-        {
-            throw std::out_of_range("Index is out of range");
-        }
-
-        return this->fields.find(std::to_string(index))->second;
+        return (*this->items)[index];
     }
     JVar& operator[](const std::string& field)
     {
-        if (JType::OBJ != this->Subtype() && JType::VAR != this->Subtype())
-        {
-            throw std::runtime_error("Is not an object");
-        }
-
-        return *this->GetField(field);
+        this->Subtype(JType::OBJ);
+        return (*this->fields)[field];
     }
     const JVar& operator[](const std::string& field) const
     {
-        if (JType::OBJ != this->Subtype())
+        if (JType::OBJ != this->subtype)
         {
             throw std::runtime_error("Is not an object");
         }
@@ -1040,7 +1047,7 @@ public:
             return UndVar;
         }
 
-        return this->fields.find(field)->second;
+        return (*this->fields)[field];
     }
 
     JVar& operator=(std::nullptr_t) override
@@ -1054,7 +1061,7 @@ public:
         this->Subtype(JType::INT);
         this->und = false;
         this->nul = false;
-        this->val.i = value;
+        this->i = value;
         return *this;
     }
 
@@ -1068,7 +1075,7 @@ public:
         this->Subtype(JType::NUM);
         this->und = false;
         this->nul = false;
-        this->val.n = value;
+        this->n = value;
         return *this;
     }
 
@@ -1082,7 +1089,7 @@ public:
         this->Subtype(JType::BOOL);
         this->und = false;
         this->nul = false;
-        this->val.b = value;
+        this->b = value;
         return *this;
     }
 
@@ -1113,7 +1120,7 @@ public:
 
     int64_t Int() const
     {
-        return this->val.i;
+        return this->i;
     }
 
     int64_t Int(int64_t defVal) const
@@ -1123,7 +1130,7 @@ public:
 
     double Num() const
     {
-        return this->val.n;
+        return this->n;
     }
 
     double Num(double defVal) const
@@ -1133,7 +1140,7 @@ public:
 
     bool Bool() const
     {
-        return this->val.b;
+        return this->b;
     }
 
     bool Bool(bool defVal) const
@@ -1152,6 +1159,24 @@ public:
     }
 
 protected:
+    void Subtype(JType subtype)
+    {
+        if (this->subtype != subtype)
+        {
+            this->Clear();
+        }
+        this->subtype = subtype;
+
+        if (JType::ARR == this->subtype && !this->items)
+        {
+            this->items = new std::vector<JVar>();
+        }
+        else if (JType::OBJ == this->subtype && !this->fields)
+        {
+            this->fields = new std::map<std::string, JVar>();
+        }
+    }
+
     void Set(const bool& value) override
     {
         *this = value;
@@ -1191,13 +1216,15 @@ protected:
 
     union
     {
+        bool    b;
         int64_t i;
         double  n;
-        bool    b;
-    } val;
+
+        std::vector<JVar>* items;
+        std::map<std::string, JVar>* fields;
+    };
     std::string str;
 
-    std::map<std::string, JVar> fields;
     static const JVar UndVar;
 };
 
