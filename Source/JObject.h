@@ -452,12 +452,13 @@ public:
         return this->ValueOrDefault(defVal);
     }
 
+    T Value;
+
+protected:
     void Set(const T& value) override
     {
         this->operator=(value);
     }
-
-    T Value;
 };
 
 #define JVALUE(T, U, V) U() = default;\
@@ -472,6 +473,7 @@ class JBool : public JValue<bool, JBool>
 public:
     JVALUE(bool, JBool, BOOL);
 
+protected:
     bool GetB() const override
     {
         return this->Value;
@@ -495,6 +497,7 @@ public:
         return *this;
     }
 
+protected:
     int64_t GetI() const override
     {
         return this->Value;
@@ -506,6 +509,7 @@ class JNum : public JValue<double, JNum>
 public:
     JVALUE(double, JNum, NUM);
 
+protected:
     double GetN() const override
     {
         return this->Value;
@@ -523,6 +527,7 @@ public:
         JValue<std::string, JStr>::Clear();
     }
 
+protected:
     const std::string& GetS() const override
     {
         return this->Value;
