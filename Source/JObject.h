@@ -382,7 +382,7 @@ protected:
     bool nul;
 };
 
-template<typename T, typename U>
+template<typename T, typename U, JType V>
 class JValue : public JField
 {
 public:
@@ -393,6 +393,11 @@ public:
         this->nul = false;
     }
     explicit JValue(std::nullptr_t) : JField(nullptr) {}
+
+    JType Type() const override
+    {
+        return V;
+    }
 
     const T& ValueOrDefault(const T& defVal) const
     {
@@ -412,7 +417,7 @@ public:
         return (JValue&)JField::operator=(nullptr);
     }
 
-    bool operator==(const JValue<T, U>& other)
+    bool operator==(const JValue& other)
     {
         if (this->und && other.und)
         {
@@ -462,16 +467,15 @@ protected:
 };
 
 #define JVALUE(T, U, V) U() = default;\
-                        U(T t) : JValue<T, U>(t) {}\
-                        explicit U(std::nullptr_t) : JValue<T, U>(nullptr) {}\
-                        JType Type() const override { return JType::V; }\
-                        using JValue<T, U>::operator=;\
-                        U& operator=(std::nullptr_t) override { return (U&)JValue<T, U>::operator=(nullptr); }
+                        U(T t) : JValue<T, U, V>(t) {}\
+                        explicit U(std::nullptr_t) : JValue<T, U, V>(nullptr) {}\
+                        U& operator=(const T& value) override { return (U&)JValue<T, U, V>::operator=(value); }\
+                        U& operator=(std::nullptr_t) override { return (U&)JValue<T, U, V>::operator=(nullptr); }
 
-class JBool : public JValue<bool, JBool>
+class JBool : public JValue<bool, JBool, JType::BOOL>
 {
 public:
-    JVALUE(bool, JBool, BOOL);
+    JVALUE(bool, JBool, JType::BOOL);
 
 protected:
     bool GetB() const override
@@ -480,21 +484,18 @@ protected:
     }
 };
 
-class JInt : public JValue<int64_t, JInt>
+class JInt : public JValue<int64_t, JInt, JType::INT>
 {
 public:
-    JVALUE(int64_t, JInt, INT);
+    JVALUE(int64_t, JInt, JType::INT);
 
     JInt& operator=(int32_t v)
     {
-        *this = (int64_t)v;
-        return *this;
+        return this->operator=((int64_t)v);
     }
-
     JInt& operator=(uint32_t v)
     {
-        *this = (int64_t)v;
-        return *this;
+        return this->operator=((int64_t)v);
     }
 
 protected:
@@ -504,10 +505,10 @@ protected:
     }
 };
 
-class JNum : public JValue<double, JNum>
+class JNum : public JValue<double, JNum, JType::NUM>
 {
 public:
-    JVALUE(double, JNum, NUM);
+    JVALUE(double, JNum, JType::NUM);
 
 protected:
     double GetN() const override
@@ -516,15 +517,15 @@ protected:
     }
 };
 
-class JStr : public JValue<std::string, JStr>
+class JStr : public JValue<std::string, JStr, JType::STR>
 {
 public:
-    JVALUE(std::string, JStr, STR);
+    JVALUE(std::string, JStr, JType::STR);
 
     void Clear() override
     {
         this->Value.clear();
-        JValue<std::string, JStr>::Clear();
+        JValue<std::string, JStr, JType::STR>::Clear();
     }
 
 protected:
