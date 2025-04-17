@@ -119,7 +119,7 @@ bool Deserialize()
         return false;
     }
 
-    if (!jvar.Deserialize(R"( {"one": 1, "null": null, "arr": [1, 2, 3]} )") || !jvar.HasValue() || JType::OBJ != jvar.Subtype())
+    if (!jvar.Deserialize(R"( {"one": 1, "null": null, "arr": [1, 2, 3]} )") || !jvar.HasValue() || JType::OBJ != jvar.Subtype() || 3 != jvar.Length())
     {
         return false;
     }

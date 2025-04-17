@@ -880,7 +880,18 @@ public:
 
     virtual std::size_t Length() const
     {
-        return JType::ARR == this->subtype ? this->items->size() : 0;
+        if (JType::ARR == this->subtype)
+        {
+            return this->items->size();
+        }
+        else if (JType::OBJ == this->subtype)
+        {
+            return this->fields->size();
+        }
+        else
+        {
+            return 0;
+        }
     }
 
     virtual bool HasField(const std::string& name) const
