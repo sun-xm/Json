@@ -243,7 +243,6 @@ string JTime::ToString(time_t time)
     return json.str();
 }
 
-const JVar JVar::UndVar;
 
 bool JVar::ToArr(JArray& arr, string& err) const
 {
