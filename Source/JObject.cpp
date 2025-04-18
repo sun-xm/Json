@@ -1465,6 +1465,11 @@ void JParser::GetJson(const JVariant& var, ostream& json)
             bool first = true;
             auto foreach = (function<void(const JVariant&)>)[&first, &json](const JVariant& var)
             {
+                if (var.IsUndefined())
+                {
+                    return;
+                }
+
                 if (!first)
                 {
                     json << ',';

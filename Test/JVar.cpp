@@ -167,7 +167,25 @@ bool Serialize()
         return false;
     }
 
-    if ("[123,123,\"123\",false,{\"var\":\"a\\\\b\\\"c\"},null]" != jvar.Serialize())
+    const std::string json = "[123,123,\"123\",false,{\"var\":\"a\\\\b\\\"c\"},null]";
+    if (json != jvar.Serialize())
+    {
+        return false;
+    }
+
+    jvar.Unshift(JVar());
+    if (json != jvar.Serialize())
+    {
+        return false;
+    }
+
+    jvar.Push(JVar());
+    if (json != jvar.Serialize())
+    {
+        return false;
+    }
+
+    if (8 != jvar.Length())
     {
         return false;
     }
