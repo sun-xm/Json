@@ -904,6 +904,8 @@ public:
                 ((jmap*)this->val)->~map();
                 break;
             }
+
+            default: break;
         }
     }
 
@@ -961,6 +963,8 @@ public:
                 ((jmap*)this->val)->~map();
                 break;
             }
+
+            default: break;
         }
 
         JField::Clear();
@@ -1378,6 +1382,8 @@ protected:
                     new(this->val) std::map<std::string, JVar>();
                     break;
                 }
+
+                default: break;
             }
 
             this->subtype = subtype;
