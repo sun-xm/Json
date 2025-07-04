@@ -146,9 +146,9 @@ bool JField::Deserialize(string&& json, string& error, size_t& where)
 
 bool JTime::ToTime(const string& value, time_t& time)
 {
-    if (0 == value.find("\\/Date("))
+    if (0 == value.find("/Date("))
     {
-        string::size_type pos = 0;
+        string::size_type pos = 6;
         time = JParser::GetInt(value, pos);
 
         if ('+' == value[pos] || '-' == value[pos])
@@ -984,6 +984,13 @@ string JParser::GetStr(istream& json)
                     return false;
                 }
 
+                oss << c;
+                break;
+            }
+
+            case '/':
+            {
+                // \/ equals /
                 oss << c;
                 break;
             }

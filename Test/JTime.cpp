@@ -26,5 +26,10 @@ int main()
         return -1;
     }
 
+    if (!jtime.Deserialize("\"\\/Date(1759388889254)\\/\""))
+    {
+        return -1;
+    }
+
     return 0;
 }
