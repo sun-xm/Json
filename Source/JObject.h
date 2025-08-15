@@ -6,6 +6,7 @@
 #include <functional>
 #include <initializer_list>
 #include <map>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
