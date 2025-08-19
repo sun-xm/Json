@@ -859,23 +859,23 @@ public:
             }
         }
     }
-    JVar(std::nullptr_t)
+    JVar(std::nullptr_t) : JVar()
     {
         *this = nullptr;
     }
-    JVar(bool value)
+    JVar(bool value) : JVar()
     {
         *this = value;
     }
-    JVar(int64_t value)
+    JVar(int64_t value) : JVar()
     {
         *this = value;
     }
-    JVar(double value)
+    JVar(double value) : JVar()
     {
         *this = value;
     }
-    JVar(const std::string& value)
+    JVar(const std::string& value) : JVar()
     {
         *this = value;
     }
