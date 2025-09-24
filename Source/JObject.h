@@ -11,7 +11,7 @@
 #include <vector>
 
 #define JO_MAX(a, b)    ((a) > (b) ? (a) : (b))
-#define OFFSETOF(t, m)  ((std::size_t)&reinterpret_cast<char const volatile&>(static_cast<JField&>(((t*)0)->m)))
+#define JO_OFFSET(t, m) ((std::size_t)&reinterpret_cast<char const volatile&>(static_cast<JField&>(((t*)0)->m)))
 #define JOBJECT(CLASS)      public:\
                                 CLASS& operator=(std::nullptr_t) override\
                                 {\
@@ -258,8 +258,8 @@
                                 typedef CLASS _SELF_
 
 #define BEG_JFIELDS(CLASS)  const std::map<std::string, std::size_t> CLASS::FieldOffsets = {
-#define JFIELD(FIELD)           std::make_pair(std::string(#FIELD), OFFSETOF(_SELF_, FIELD))
-#define JFIELD_KEY(FIELD, KEY)  std::make_pair(std::string(KEY),    OFFSETOF(_SELF_, FIELD))
+#define JFIELD(FIELD)           std::make_pair(std::string(#FIELD), JO_OFFSET(_SELF_, FIELD))
+#define JFIELD_KEY(FIELD, KEY)  std::make_pair(std::string(KEY),    JO_OFFSET(_SELF_, FIELD))
 #define END_JFIELDS         };
 
 enum class JType
