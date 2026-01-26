@@ -718,7 +718,7 @@ public:
         return false;
     }
 
-    bool ForEachItem(const std::function<void(const T& item)>& cb) const
+    bool ForEachItem(const std::function<bool(const T& item)>& cb) const
     {
         if (cb)
         {
