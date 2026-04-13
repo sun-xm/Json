@@ -10,6 +10,10 @@
 
 using namespace std;
 
+#ifdef JOBJECT_NS
+using namespace JOBJECT_NS;
+#endif
+
 wstring_convert<codecvt_utf8<wchar_t>> utf8;
 
 inline std::string to_string(JType type)

@@ -262,6 +262,10 @@
 #define JFIELD_KEY(FIELD, KEY)  std::make_pair(std::string(KEY),    JO_OFFSET(_SELF_, FIELD))
 #define END_JFIELDS         };
 
+#ifdef JOBJECT_NS
+namespace JOBJECT_NS {
+#endif
+
 enum class JType
 {
     BOOL,
@@ -1459,3 +1463,7 @@ public:
     static void GetJson(const JArray& arr, std::ostream& json);
     static void GetJson(const std::string& str, std::ostream& json);
 };
+
+#ifdef JOBJECT_NS
+} // namespace JOBJECT_NS
+#endif
