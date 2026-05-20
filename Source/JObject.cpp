@@ -1178,7 +1178,7 @@ int64_t JParser::GetInt(istream& json)
             json.seekg(-1, ios::cur);
         }
 
-        json >> v;
+        json >> dec >> v;
     }
 
     return v;
@@ -1243,7 +1243,7 @@ uint64_t JParser::GetUint(istream& json)
     else
     {
         json.seekg(-1, ios::cur);
-        json >> v;
+        json >> dec >> v;
     }
 
     return v;
