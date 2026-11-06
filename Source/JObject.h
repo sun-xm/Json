@@ -1,13 +1,17 @@
 #pragma once
 
 #include <algorithm>
+#include <cassert>
+#include <codecvt>
 #include <cstdint>
 #include <cstring>
 #include <functional>
 #include <initializer_list>
+#include <iomanip>
 #include <map>
 #include <stdexcept>
-#include <string>
+#include <sstream>
+#include <type_traits>
 #include <vector>
 
 #if defined(_MSC_VER) && _MSC_VER < 1900
@@ -280,6 +284,42 @@ enum class JType
     ARR,
     VAR
 };
+
+inline std::string to_string(JType type)
+{
+    switch (type)
+    {
+        case JType::BOOL:
+            return "JType::BOOL";
+
+        case JType::INT:
+            return "JType::INT";
+
+        case JType::NUM:
+            return "JType::NUM";
+
+        case JType::STR:
+            return "JType::STR";
+
+        case JType::OBJ:
+            return "JType::OBJ";
+
+        case JType::ARR:
+            return "JType::ARR";
+
+        case JType::VAR:
+            return "JType::VAR";
+
+        default:
+            return "Unknown type";
+    }
+}
+
+inline std::ostream& operator<<(std::ostream& stream, JType type)
+{
+    stream << to_string(type);
+    return stream;
+}
 
 struct JBase
 {
@@ -595,6 +635,54 @@ public:
 protected:
     static bool ToTime(const std::string& value, time_t& time);
     static std::string ToString(time_t time);
+
+    static int64_t GetInt(const std::string& json, std::string::size_type& off)
+    {
+        char* end;
+        int64_t value;
+
+        if (json.length() > off + 2 && '0' == json[off] && ('x' == json[off + 1] || 'X' == json[off + 1]))
+        {
+            value = strtoll(json.c_str() + off, &end, 16);
+        }
+        else
+        {
+            value = strtoll(json.c_str() + off, &end, 10);
+        }
+
+        if (end == json.c_str() + off)
+        {
+            throw std::runtime_error("Failed to parse int");
+        }
+
+        off = end - json.c_str();
+
+        return value;
+    }
+
+    static uint64_t GetUint(const std::string& json, std::string::size_type& off)
+    {
+        char* end;
+        uint64_t value;
+
+        if (json.length() > off + 2 && '0' == json[off] && ('x' == json[off + 1] || 'X' == json[off + 1]))
+        {
+            value = std::strtoull(json.c_str() + off, &end, 16);
+        }
+        else
+        {
+            value = std::strtoull(json.c_str() + off, &end, 10);
+        }
+
+        if (end == json.c_str() + off)
+        {
+            throw std::runtime_error("Failed to parse uint");
+        }
+
+        off = end - json.c_str();
+
+        return value;
+    }
 
 protected:
     time_t time;
@@ -1507,30 +1595,1080 @@ protected:
 class JParser
 {
 public:
-    static void         Serialize(std::ostream& json, const JField& field);
-    static void         Deserialize(std::istream& json, JField& field);
+    static void Serialize(std::ostream& json, const JField& field)
+    {
+        GetJson("", field, json);
+    }
 
-    static void         GetVal(std::istream& json, const std::string& name, JField* field);
-    static void         GetArr(std::istream& json, const std::string& name, JField* arr);
-    static void         GetObj(std::istream& json, JField* obj);
-    static double       GetFlt(std::istream& json);
-    static double       GetFlt(const std::string& num);
-    static std::string  GetStr(std::istream& json);
-    static std::string  GetNum(std::istream& json);
-    static int64_t      GetInt(std::istream& json);
-    static int64_t      GetInt(const std::string& num);
-    static int64_t      GetInt(const std::string& json, std::string::size_type& off);
-    static std::string  GetName(std::istream& json);
-    static bool         GetBool(std::istream& json);
-    static uint64_t     GetUint(std::istream& json);
-    static uint64_t     GetUint(const std::string& json, std::string::size_type& off);
-    static bool         IsFloat(const std::string& num);
+    static void Deserialize(std::istream& json, JField& field)
+    {
+        field.Clear();
 
-    static void GetJson(const std::string& name, const JField& field, std::ostream& json);
-    static void GetJson(const JVariant& var, std::ostream& json);
-    static void GetJson(const JObject& obj, std::ostream& json);
-    static void GetJson(const JArray& arr, std::ostream& json);
-    static void GetJson(const std::string& str, std::ostream& json);
+        char c;
+        do
+        {
+            json.read(&c, 1);
+            if (json.eof())
+            {
+                return;
+            }
+        } while (' ' == c || '\r' == c || '\n' == c || '\t' == c);
+
+        json.seekg(-1, std::ios::cur);
+
+        GetVal(json, "", &field);
+
+        json.read(&c, 1);
+
+        while (!json.eof())
+        {
+            if ('\t' != c && '\r' != c && '\n' != c && ' ' != c)
+            {
+                json.seekg(-1, std::ios::cur);
+                throw Unexpected();
+            }
+
+            json.read(&c, 1);
+        }
+    }
+
+private:
+    static std::runtime_error ExpectMore()
+    {
+        return std::runtime_error("Expecting more charactors");
+    }
+
+    static std::runtime_error TypeMismatch(const std::string& name, JType expected, JType actual)
+    {
+        return std::runtime_error(("Type mismatch: " + name + ". Expecting: " + to_string(expected) + ". Actual: " + to_string(actual)).c_str());
+    }
+
+    static std::runtime_error Unexpected()
+    {
+        return std::runtime_error("Unexpected charactor");
+    }
+
+    static bool IsNumber(char c)
+    {
+        return c >= '+' && c <= '9' && c != ',' && c != '/';
+    }
+
+    static char GetChar(std::istream& json)
+    {
+        char c;
+        json.read(&c, 1);
+
+        if (json.eof())
+        {
+            throw ExpectMore();
+        }
+
+        return c;
+    }
+
+    static char FirstNotSpace(std::istream& json)
+    {
+        char c;
+
+        do
+        {
+            c = GetChar(json);
+
+        } while (' ' == c || '\r' == c || '\n' == c || '\t' == c);
+
+        return c;
+    }
+
+    static JField* GetField(JField* f, const std::string& n)
+    {
+        return (JType::OBJ == f->Type() ? ((JObject*)f)->GetField(n) : ((JVariant*)f)->GetField(n));
+    }
+
+    static JField* NewItem(JField* f)
+    {
+        return (JType::ARR == f->Type() ? ((JArray*)f)->NewItem() : ((JVariant*)f)->NewItem());
+    }
+
+    static void GetVal(std::istream& json, const std::string& name, JField* field)
+    {
+        auto c = FirstNotSpace(json);
+        switch (c)
+        {
+            case '{':
+            {
+                if (field && JType::OBJ != field->Type() && JType::VAR != field->Type())
+                {
+                    json.seekg(-1, std::ios::cur);
+                    throw TypeMismatch(name, field->Type(), JType::OBJ);
+                }
+                GetObj(json, (JObject*)field);
+                break;
+            }
+
+            case '[':
+            {
+                if (field && JType::ARR != field->Type() && JType::VAR != field->Type())
+                {
+                    json.seekg(-1, std::ios::cur);
+                    throw TypeMismatch(name, field->Type(), JType::ARR);
+                }
+                GetArr(json, name, field);
+                break;
+            }
+
+            case '\"':
+            {
+                if (field)
+                {
+                    if (JType::STR == field->Type() || JType::VAR == field->Type())
+                    {
+                        ((JBase*)field)->Set(GetStr(json));
+                    }
+                    else
+                    {
+                        json.seekg(-1, std::ios::cur);
+                        throw TypeMismatch(name, field->Type(), JType::STR);
+                    }
+                }
+                else
+                {
+                    GetStr(json);
+                }
+                break;
+            }
+
+            default:
+            {
+                json.seekg(-1, std::ios::cur);
+
+                switch (c)
+                {
+                    case 't':
+                    case 'f':
+                    {
+                        if (field)
+                        {
+                            if (JType::BOOL == field->Type() || JType::VAR == field->Type())
+                            {
+                                ((JBase*)field)->Set(GetBool(json));
+                            }
+                            else
+                            {
+                                throw TypeMismatch(name, field->Type(), JType::BOOL);
+                            }
+                        }
+                        else
+                        {
+                            GetBool(json);
+                        }
+                        break;
+                    }
+
+                    case 'n':
+                    {
+                        if ('n' == GetChar(json) &&
+                            'u' == GetChar(json) &&
+                            'l' == GetChar(json) &&
+                            'l' == GetChar(json))
+                        {
+                            if (field)
+                            {
+                                *field = nullptr;
+                            }
+                        }
+                        else
+                        {
+                            json.seekg(-1, std::ios::cur);
+                            throw Unexpected();
+                        }
+                        break;
+                    }
+
+                    default:
+                    {
+                        if (IsNumber(c))
+                        {
+                            if (field)
+                            {
+                                switch (field->Type())
+                                {
+                                    case JType::INT:
+                                    {
+                                        ((JBase*)field)->Set(GetInt(json));
+                                        break;
+                                    }
+
+                                    case JType::NUM:
+                                    {
+                                        ((JBase*)field)->Set(GetFlt(json));
+                                        break;
+                                    }
+
+                                    case JType::VAR:
+                                    {
+                                        auto num = GetNum(json);
+                                        if (IsFloat(num))
+                                        {
+                                            ((JBase*)field)->Set(GetFlt(num));
+                                        }
+                                        else
+                                        {
+                                            ((JBase*)field)->Set(GetInt(num));
+                                        }
+                                        break;
+                                    }
+
+                                    default:
+                                    {
+                                        throw TypeMismatch(name, field->Type(), JType::NUM);
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                GetFlt(json);
+                            }
+                        }
+                        else
+                        {
+                            throw Unexpected();
+                        }
+                        break;
+                    }
+                }
+
+                break;
+            }
+        }
+    }
+
+    static void GetArr(std::istream& json, const std::string& name, JField* arr)
+    {
+        auto c = FirstNotSpace(json);
+        if (']' == c)
+        {
+            return;
+        }
+
+        json.seekg(-1, std::ios::cur);
+
+        do
+        {
+            GetVal(json, name, arr ? NewItem(arr) : nullptr);
+
+        } while ([&]
+        {
+            switch (FirstNotSpace(json))
+            {
+                case ',': return true;
+
+                case ']': return false;
+
+                default:
+                {
+                    json.seekg(-1, std::ios::cur);
+                    throw Unexpected();
+                }
+            }
+        }());
+    }
+    static void GetObj(std::istream& json, JField* obj)
+    {
+        auto c = FirstNotSpace(json);
+        if ('}' == c)
+        {
+            return;
+        }
+
+        do
+        {
+            if ('\"' != c)
+            {
+                json.seekg(-1, std::ios::cur);
+                throw Unexpected();
+            }
+
+            auto n = GetName(json);
+            auto f = obj ? GetField(obj, n) : nullptr;
+
+            c = GetChar(json);
+            while ('.' == c)
+            {
+                if (f)
+                {
+                    switch (f->Type())
+                    {
+                        case JType::OBJ:
+                        case JType::VAR:
+                        {
+                            break;
+                        }
+
+                        default:
+                        {
+                            json.seekg(-1, std::ios::cur);
+                            throw TypeMismatch(n, f->Type(), JType::OBJ);
+                        }
+                    }
+                }
+
+                n = GetName(json);
+                f = f ? GetField(f, n) : nullptr;
+
+                c = GetChar(json);
+            }
+            assert('\"' == c);
+
+            c = FirstNotSpace(json);
+
+            if (':' != c)
+            {
+                json.seekg(-1, std::ios::cur);
+                throw Unexpected();
+            }
+
+            GetVal(json, n, f);
+
+        } while ([&]
+        {
+            switch (FirstNotSpace(json))
+            {
+                case ',':
+                {
+                    c = FirstNotSpace(json);
+                    return true;
+                }
+
+                case '}':
+                {
+                    return false;
+                }
+
+                default:
+                {
+                    json.seekg(-1, std::ios::cur);
+                    throw Unexpected();
+                }
+            }
+        }());
+    }
+
+    static double GetFlt(std::istream& json)
+    {
+        double v;
+        json >> v;
+        return v;
+    }
+
+    static double GetFlt(const std::string& num)
+    {
+        char* end;
+        double v = strtod(num.c_str(), &end);
+
+        if (num.c_str() == end)
+        {
+            throw std::runtime_error("Failed to parse double");
+        }
+
+        return v;
+    }
+
+    static std::string GetStr(std::istream& json)
+    {
+        std::ostringstream oss;
+
+        char c = 0;
+        char p;
+        do
+        {
+            p = c;
+            c = GetChar(json);
+
+        } while ([&]
+        {
+            switch (c)
+            {
+                case '\\':
+                {
+                    if ('\\' == p)
+                    {
+                        oss << c;
+                        c = 0;
+                    }
+                    break;
+                }
+
+                case '\"':
+                {
+                    if ('\\' != p)
+                    {
+                        return false;
+                    }
+
+                    oss << c;
+                    break;
+                }
+
+                case '/':
+                {
+                    // \/ equals /
+                    oss << c;
+                    break;
+                }
+
+                case 'n':
+                {
+                    oss << ('\\' == p ? '\n' : 'n');
+                    break;
+                }
+
+                case 'r':
+                {
+                    oss << ('\\' == p ? '\r' : 'r');
+                    break;
+                }
+
+                case 't':
+                {
+                    oss << ('\\' == p ? '\t' : 't');
+                    break;
+                }
+
+                case 'u':
+                {
+                    if ('\\' == p)
+                    {
+                        char buf[5];
+                        for (int i = 0; i < 4; i++)
+                        {
+                            c = tolower(GetChar(json));
+                            if (('0' <= c && '9' >= c) ||
+                                ('a' <= c && 'f' >= c))
+                            {
+                                buf[i] = c;
+                                continue;
+                            }
+
+                            json.seekg(-1, std::ios::cur);
+                            throw Unexpected();
+                        }
+                        buf[4] = '\0';
+                        oss << utf8().to_bytes((wchar_t)strtol(buf, nullptr, 16));
+                    }
+                    else
+                    {
+                        oss << c;
+                    }
+                    break;
+                }
+
+                default:
+                {
+                    if ('\\' == p)
+                    {
+                        json.seekg(-1, std::ios::cur);
+                        throw Unexpected();
+                    }
+                    oss << c;
+                    break;
+                }
+            }
+
+            return true;
+        }());
+
+        return oss.str();
+    }
+
+    static std::string GetNum(std::istream& json)
+    {
+        std::ostringstream oss;
+
+        bool digit = false;
+        bool sign  = false;
+        bool hex   = false;
+        bool exp   = false;
+
+        auto c = GetChar(json);
+        auto p = json.peek();
+
+        if ('0' == c && ('x' == p || 'X' == p))
+        {
+            oss << c << GetChar(json);
+
+            c = GetChar(json);
+
+            digit = true;
+            sign  = true;
+            hex   = true;
+        }
+
+        const auto isnum = [hex](char c)
+        {
+            if (c >= '0' && c <= '9')
+            {
+                return true;
+            }
+
+            if (hex && ((c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')))
+            {
+                return true;
+            }
+
+            return false;
+        };
+
+        if ('+' != c && '-' != c && '.' != c && !isnum(c))
+        {
+            throw Unexpected();
+        }
+
+        do
+        {
+            if ('+' == c || '-' == c)
+            {
+                if (sign)
+                {
+                    throw Unexpected();
+                }
+
+                sign = true;
+            }
+            else if ('E' == c || 'e' == c)
+            {
+                if (exp)
+                {
+                    throw Unexpected();
+                }
+
+                exp  = true;
+                sign = false;
+            }
+            else if ('.' == c)
+            {
+                if (digit)
+                {
+                    throw Unexpected();
+                }
+
+                digit = true;
+            }
+
+            oss << c;
+
+        } while ([&json, &c, &isnum]
+        {
+            auto p = json.peek();
+
+            if ('.' == p || '+' == p || '-' == p || 'e' == p || 'E' == p || isnum(p))
+            {
+                c = GetChar(json);
+                return true;
+            }
+
+            return false;
+        }());
+
+        return oss.str();
+    }
+
+    static int64_t GetInt(std::istream& json)
+    {
+        int64_t v;
+
+        auto c = GetChar(json);
+        auto p = json.peek();
+        if ('0' == c && ('x' == p || 'X' == p))
+        {
+            json.seekg(1, std::ios::cur);
+            json >> std::hex >> v;
+        }
+        else
+        {
+            if (json.eof())
+            {
+                json.clear();
+                json.seekg(-1, std::ios::end);
+            }
+            else
+            {
+                json.seekg(-1, std::ios::cur);
+            }
+
+            json >> std::dec >> v;
+        }
+
+        return v;
+    }
+
+    static int64_t GetInt(const std::string& num)
+    {
+        int64_t v;
+        char* end;
+
+        if (num.length() > 2 && '0' == num[0] && ('x' == num[1] || 'X' == num[1]))
+        {
+            v = strtoll(num.c_str(), &end, 16);
+        }
+        else
+        {
+            v = strtoll(num.c_str(), &end, 10);
+        }
+
+        if (num.c_str() == end)
+        {
+            throw std::runtime_error("Failed to parse int");
+        }
+
+        return v;
+    }
+
+    static int64_t GetInt(const std::string& json, std::string::size_type& off)
+    {
+        char* end;
+        int64_t value;
+
+        if (json.length() > off + 2 && '0' == json[off] && ('x' == json[off + 1] || 'X' == json[off + 1]))
+        {
+            value = strtoll(json.c_str() + off, &end, 16);
+        }
+        else
+        {
+            value = strtoll(json.c_str() + off, &end, 10);
+        }
+
+        if (end == json.c_str() + off)
+        {
+            throw std::runtime_error("Failed to parse int");
+        }
+
+        off = end - json.c_str();
+
+        return value;
+    }
+
+    static std::string GetName(std::istream& json)
+    {
+        std::ostringstream oss;
+
+        char c = 0;
+        char p;
+        do
+        {
+            p = c;
+            c = GetChar(json);
+
+        } while ([&]
+        {
+            switch (c)
+            {
+                case '\\':
+                {
+                    if ('\\' == p)
+                    {
+                        oss << c;
+                        c = 0;
+                    }
+                    break;
+                }
+
+                case '\"':
+                {
+                    if ('\\' != p)
+                    {
+                        json.seekg(-1, std::ios::cur);
+                        return false;
+                    }
+
+                    oss << c;
+                    break;
+                }
+
+                default:
+                {
+                    if ('\\' == p)
+                    {
+                        json.seekg(-1, std::ios::cur);
+                        throw Unexpected();
+                    }
+
+                    if ('.' == c)
+                    {
+                        json.seekg(-1, std::ios::cur);
+                        return false;
+                    }
+
+                    oss << c;
+                    break;
+                }
+            }
+
+            return true;
+        }());
+
+        return oss.str();
+    }
+
+    static bool GetBool(std::istream& json)
+    {
+        switch (GetChar(json))
+        {
+            case 't':
+            {
+                if ('r' == GetChar(json) &&
+                    'u' == GetChar(json) &&
+                    'e' == GetChar(json))
+                {
+                    return true;
+                }
+
+                break;
+            }
+
+            case 'f':
+            {
+                if ('a' == GetChar(json) &&
+                    'l' == GetChar(json) &&
+                    's' == GetChar(json) &&
+                    'e' == GetChar(json))
+                {
+                    return false;
+                }
+
+                break;
+            }
+
+            default: break;
+        }
+
+        json.seekg(-1, std::ios::cur);
+        throw Unexpected();
+    }
+
+    static uint64_t GetUint(std::istream& json)
+    {
+        uint64_t v;
+
+        auto c = GetChar(json);
+        if ('0' == c && 'x' == json.peek())
+        {
+            json.seekg(1, std::ios::cur);
+            json >> std::hex >> v;
+        }
+        else
+        {
+            json.seekg(-1, std::ios::cur);
+            json >> std::dec >> v;
+        }
+
+        return v;
+    }
+
+    static uint64_t GetUint(const std::string& json, std::string::size_type& off)
+    {
+        char* end;
+        uint64_t value;
+
+        if (json.length() > off + 2 && '0' == json[off] && ('x' == json[off + 1] || 'X' == json[off + 1]))
+        {
+            value = std::strtoull(json.c_str() + off, &end, 16);
+        }
+        else
+        {
+            value = std::strtoull(json.c_str() + off, &end, 10);
+        }
+
+        if (end == json.c_str() + off)
+        {
+            throw std::runtime_error("Failed to parse uint");
+        }
+
+        off = end - json.c_str();
+
+        return value;
+    }
+
+    static bool IsFloat(const std::string& num)
+    {
+        if (num.length() >= 2 && '0' == num[0] && ('x' == num[1] || 'X' == num[1]))
+        {
+            return false;
+        }
+
+        for (auto c : num)
+        {
+            if ('.' == c || 'e' == c || 'E' == c)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    static void GetJson(const std::string& name, const JField& field, std::ostream& json)
+    {
+        if (field.IsUndefined())
+        {
+            return;
+        }
+
+        if (!name.empty())
+        {
+            json << '\"' << name << "\":" ;
+        }
+
+        if (field.IsNull())
+        {
+            json << "null";
+            return;
+        }
+
+        switch (field.Type())
+        {
+            case JType::INT:
+            {
+                json << ((JBase&)field).GetI();
+                break;
+            }
+
+            case JType::NUM:
+            {
+                json << std::setprecision(std::numeric_limits<double>::digits10 + 1) << ((JBase&)field).GetN();
+                break;
+            }
+
+            case JType::BOOL:
+            {
+                json << (((JBase&)field).GetB() ? "true" : "false");
+                break;
+            }
+
+            case JType::STR:
+            {
+                GetJson(((JBase&)field).GetS(), json);
+                break;
+            }
+
+            case JType::OBJ:
+            {
+                GetJson((JObject&)field, json);
+                break;
+            }
+
+            case JType::ARR:
+            {
+                GetJson((JArray&)field, json);
+                break;
+            }
+
+            case JType::VAR:
+            {
+                GetJson((JVariant&)field, json);
+                break;
+            }
+
+            default:
+            {
+                throw std::runtime_error(name + ": unknown json type");
+            }
+        }
+    }
+
+    static void GetJson(const JVariant& var, std::ostream& json)
+    {
+        switch (var.Subtype())
+        {
+            case JType::BOOL:
+            {
+                json << (((JBase&)var).GetB() ? "true" : "false");
+                break;
+            }
+
+            case JType::INT:
+            {
+                json << ((JBase&)var).GetI();
+                break;
+            }
+
+            case JType::NUM:
+            {
+                json << std::setprecision(std::numeric_limits<double>::digits10 + 1) << ((JBase&)var).GetN();
+                break;
+            }
+
+            case JType::STR:
+            {
+                json << '\"';
+
+                for (auto c : ((JBase&)var).GetS())
+                {
+                    switch (c)
+                    {
+                        case '\\':
+                        {
+                            json << "\\\\";
+                            break;
+                        }
+
+                        case '"':
+                        {
+                            json << "\\\"";
+                            break;
+                        }
+
+                        default:
+                        {
+                            json << c;
+                            break;
+                        }
+                    }
+                }
+
+                json << '\"';
+                break;
+            }
+
+            case JType::OBJ:
+            {
+                json << '{';
+
+                bool first = true;
+                auto foreach = (std::function<void(const std::string&, const JVariant&)>)[&first, &json](const std::string& name, const JVariant& var)
+                {
+                    if (var.IsUndefined())
+                    {
+                        return;
+                    }
+
+                    if (!first)
+                    {
+                        json << ',';
+                    }
+                    first = false;
+
+                    GetJson(name, var, json);
+                };
+                var.ForEach(foreach);
+
+                json << '}';
+                break;
+            }
+
+            case JType::ARR:
+            {
+                json << '[';
+
+                bool first = true;
+                auto foreach = (std::function<void(const JVariant&)>)[&first, &json](const JVariant& var)
+                {
+                    if (var.IsUndefined())
+                    {
+                        return;
+                    }
+
+                    if (!first)
+                    {
+                        json << ',';
+                    }
+                    first = false;
+
+                    GetJson("", var, json);
+                };
+                var.ForEach(foreach);
+
+                json << ']';
+                break;
+            }
+
+            default: break;
+        }
+    }
+
+    static void GetJson(const JObject& obj, std::ostream& json)
+    {
+        json << '{';
+
+        bool first = true;
+        obj.ForEach([&](const std::string& name, const JField& field)
+        {
+            if (field.IsUndefined())
+            {
+                return false;
+            }
+
+            if (!first)
+            {
+                json << ',';
+            }
+            first = false;
+
+            GetJson(name, field, json);
+
+            return false;
+        });
+
+        json << '}';
+    }
+
+    static void GetJson(const JArray& arr, std::ostream& json)
+    {
+        json << '[';
+
+        bool first = true;
+        arr.ForEach([&](const JField& field)
+        {
+            if (!first)
+            {
+                json << ',';
+            }
+            first = false;
+
+            GetJson("", field, json);
+
+            return false;
+        });
+
+        json << ']';
+    }
+
+    static void GetJson(const std::string& str, std::ostream& json)
+    {
+        json << '\"';
+
+        for (auto c : str)
+        {
+            switch (c)
+            {
+                case '\\':
+                {
+                    json << "\\\\";
+                    break;
+                }
+
+                case '"':
+                {
+                    json << "\\\"";
+                    break;
+                }
+
+                default:
+                {
+                    json << c;
+                    break;
+                }
+            }
+        }
+
+        json << '\"';
+    }
+
+    static std::wstring_convert<std::codecvt_utf8<wchar_t>>& utf8()
+    {
+        // TODO: no multi-threading safe. Make it local thread storage?
+        static std::wstring_convert<std::codecvt_utf8<wchar_t>> u8;
+        return u8;
+    }
 };
 
 #ifdef JOBJECT_NS
