@@ -633,8 +633,106 @@ public:
     }
 
 protected:
-    static bool ToTime(const std::string& value, time_t& time);
-    static std::string ToString(time_t time);
+    static bool ToTime(const std::string& value, time_t& time)
+    {
+        if (0 == value.find("/Date("))
+        {
+            std::string::size_type pos = 6;
+            time = GetInt(value, pos);
+
+            if ('+' == value[pos] || '-' == value[pos])
+            {
+                auto zone = GetInt(value, pos);
+                auto hours = zone / 100;
+                auto minites = zone - hours * 100;
+
+                time -= hours * 60 * 60;
+                time -= minites * 60;
+            }
+
+            return true;
+        }
+        else
+        {
+            tm tm = { 0 };
+            std::string::size_type pos = 0;
+
+            tm.tm_year = (int)GetUint(value, pos) - 1900;
+            if ('-' != value[pos])
+            {
+                return false;
+            }
+
+            tm.tm_mon = (int)GetUint(value, ++pos) - 1;
+            if ('-' != value[pos])
+            {
+                return false;
+            }
+
+            tm.tm_mday = (int)GetUint(value, ++pos);
+            if ('T' != value[pos])
+            {
+                return false;
+            }
+
+            tm.tm_hour = (int)GetUint(value, ++pos);
+            if (':' != value[pos])
+            {
+                return false;
+            }
+
+            tm.tm_min = (int)GetUint(value, ++pos);
+            if (':' != value[pos])
+            {
+                return false;
+            }
+
+            tm.tm_sec = (int)GetUint(value, ++pos);
+
+            if ('.' == value[pos])
+            {
+                GetUint(value, ++pos);
+            }
+
+            time = mktime(&tm);
+            if (-1 == time)
+            {
+                return false;
+            }
+
+            if ('z' != tolower(value[pos]))
+            {
+                auto zone = GetInt(value, pos);
+                auto hours = zone / 100;
+                auto minites = zone - hours * 100;
+
+                time -= hours * 60 * 60;
+                time -= minites * 60;
+            }
+
+            return true;
+        }
+    }
+
+    static std::string ToString(time_t time)
+    {
+        tm tm;
+
+        #if defined(WIN32) || defined(_WIN32)
+        localtime_s(&tm, &time);
+        #else
+        tm = *localtime(&time);
+        #endif
+
+        std::ostringstream json;
+        json << '\"' << std::to_string(tm.tm_year + 1900) << '-'
+            << std::setfill('0') << std::setw(2) << tm.tm_mon + 1 << '-'
+            << std::setfill('0') << std::setw(2) << tm.tm_mday << 'T'
+            << std::setfill('0') << std::setw(2) << tm.tm_hour << ':'
+            << std::setfill('0') << std::setw(2) << tm.tm_min  << ':'
+            << std::setfill('0') << std::setw(2) << tm.tm_sec  << "Z\"";
+        return json.str();
+    }
 
     static int64_t GetInt(const std::string& json, std::string::size_type& off)
     {
