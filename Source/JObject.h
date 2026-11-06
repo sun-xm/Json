@@ -10,6 +10,10 @@
 #include <string>
 #include <vector>
 
+#if defined(_MSC_VER) && _MSC_VER < 1900
+    #define noexcept
+#endif
+
 #define JO_MAX(a, b)    ((a) > (b) ? (a) : (b))
 #define JO_OFFSET(t, m) ((std::size_t)&reinterpret_cast<char const volatile&>(static_cast<JField&>(((t*)0)->m)))
 #define JOBJECT(CLASS)      public:\
@@ -533,6 +537,16 @@ class JStr : public JValue<std::string, JStr, JType::STR>
 {
 public:
     JVALUE(std::string, JStr, JType::STR);
+    JStr(JStr&& other) noexcept { *this = std::move(other); }
+
+    JStr& operator=(JStr&& other) noexcept
+    {
+        this->nul = other.nul;
+        this->und = other.und;
+        this->Value = std::move(other.Value);
+        other.Clear();
+        return *this;
+    }
 
     void Clear() override
     {
@@ -643,9 +657,20 @@ class JArr : public JArray
 
 public:
     JArr() {}
-    JArr(const std::initializer_list<T>& list)
+    JArr(JArr&& other) noexcept { *this = std::move(other); }
+    JArr(const std::initializer_list<T>& list) : Value(list)
     {
-        this->Value = list;
+        this->nul = false;
+        this->und = false;
+    }
+
+    JArr& operator=(JArr&& other) noexcept
+    {
+        this->nul = other.nul;
+        this->und = other.und;
+        this->Value = std::move(other.Value);
+        other.Clear();
+        return *this;
     }
 
     void Clear() override
@@ -803,75 +828,11 @@ public:
     JVar() : subtype(JType::VAR) {}
     JVar(const JVar& other) : JVar()
     {
-        this->Subtype(other.subtype);
-        this->und = other.und;
-        this->nul = other.nul;
-
-        switch (this->subtype)
-        {
-            case JType::ARR:
-            {
-                *(jvec*)this->val = *(jvec*)other.val;
-                break;
-            }
-
-            case JType::STR:
-            {
-                *(jstr*)this->val = *(jstr*)other.val;
-                break;
-            }
-
-            case JType::OBJ:
-            {
-                *(jmap*)this->val = *(jmap*)other.val;
-                break;
-            }
-
-            default:
-            {
-                if (other.HasValue())
-                {
-                    memcpy(this->val, other.val, sizeof(this->val));
-                }
-                break;
-            }
-        }
+        *this = other;
     }
-    JVar(JVar&& other) : JVar()
+    JVar(JVar&& other) noexcept : JVar()
     {
-        this->Subtype(other.subtype);
-        this->und = other.und;
-        this->nul = other.nul;
-
-        switch (this->subtype)
-        {
-            case JType::ARR:
-            {
-                *(jvec*)this->val = std::move(*(jvec*)other.val);
-                break;
-            }
-
-            case JType::STR:
-            {
-                *(jstr*)this->val = std::move(*(jstr*)other.val);
-                break;
-            }
-
-            case JType::OBJ:
-            {
-                *(jmap*)this->val = std::move(*(jmap*)other.val);
-                break;
-            }
-
-            default:
-            {
-                if (other.HasValue())
-                {
-                    memcpy(this->val, other.val, sizeof(this->val));
-                }
-                break;
-            }
-        }
+        *this = std::move(other);
     }
     JVar(std::nullptr_t) : JVar()
     {
@@ -923,6 +884,83 @@ public:
 
             default: break;
         }
+    }
+
+    JVar& operator=(const JVar& other)
+    {
+        this->Subtype(other.subtype);
+        this->und = other.und;
+        this->nul = other.nul;
+
+        switch (this->subtype)
+        {
+            case JType::ARR:
+            {
+                *(jvec*)this->val = *(jvec*)other.val;
+                break;
+            }
+
+            case JType::STR:
+            {
+                *(jstr*)this->val = *(jstr*)other.val;
+                break;
+            }
+
+            case JType::OBJ:
+            {
+                *(jmap*)this->val = *(jmap*)other.val;
+                break;
+            }
+
+            default:
+            {
+                if (other.HasValue())
+                {
+                    memcpy(this->val, other.val, sizeof(this->val));
+                }
+                break;
+            }
+        }
+        return *this;
+    }
+
+    JVar& operator=(JVar&& other) noexcept
+    {
+        this->Subtype(other.subtype);
+        this->und = other.und;
+        this->nul = other.nul;
+
+        switch (this->subtype)
+        {
+            case JType::ARR:
+            {
+                *(jvec*)this->val = std::move(*(jvec*)other.val);
+                break;
+            }
+
+            case JType::STR:
+            {
+                *(jstr*)this->val = std::move(*(jstr*)other.val);
+                break;
+            }
+
+            case JType::OBJ:
+            {
+                *(jmap*)this->val = std::move(*(jmap*)other.val);
+                break;
+            }
+
+            default:
+            {
+                if (other.HasValue())
+                {
+                    memcpy(this->val, other.val, sizeof(this->val));
+                }
+                break;
+            }
+        }
+        other.Clear();
+        return *this;
     }
 
     bool IsUndefined() const override
@@ -1243,7 +1281,7 @@ public:
     {
         if (JType::ARR != this->subtype)
         {
-            throw std::out_of_range("Is not an array");
+            throw std::runtime_error("Is not an array");
         }
 
         return (*(jvec*)this->val)[index];
@@ -1252,7 +1290,7 @@ public:
     {
         if (JType::ARR != this->subtype)
         {
-            throw std::out_of_range("Is not an array");
+            throw std::runtime_error("Is not an array");
         }
 
         return (*(jvec*)this->val)[index];
@@ -1348,11 +1386,6 @@ public:
         *(jstr*)this->val = value;
 
         return *this;
-    }
-
-    JVar& operator=(const JVar& var)
-    {
-        return this->operator=((JField&)var);
     }
 
     JVar& operator=(const JField& field);
