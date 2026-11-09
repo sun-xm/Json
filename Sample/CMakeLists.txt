@@ -3,12 +3,6 @@ project(Sample)
 
 add_executable(${PROJECT_NAME} main.cpp Person.cpp JPrint.cpp)
 
-target_link_libraries(
-    ${PROJECT_NAME}
-    PRIVATE
-    JLib
-)
-
 if(CMAKE_GENERATOR MATCHES "Visual Studio")
     set(WORK_DIR "${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/")
 else()

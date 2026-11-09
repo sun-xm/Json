@@ -7,11 +7,8 @@ endif()
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(SRC_DIR ${CMAKE_CURRENT_LIST_DIR}/Source)
-file(GLOB LIB_CPP ${SRC_DIR}/*.cpp)
-add_library(JLib STATIC ${LIB_CPP})
 
-include_directories(${SRC_DIR})
+include_directories(SRC_DIR ${CMAKE_CURRENT_LIST_DIR}/Source)
 
 enable_testing()
 add_subdirectory(Test Test)
